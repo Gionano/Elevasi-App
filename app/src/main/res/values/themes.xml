@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Elevasi" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/sandstone</item>
+        <item name="colorOnPrimary">@color/ivory</item>
+        <item name="colorSecondary">@color/sage_mist</item>
+        <item name="colorOnSecondary">@color/charcoal_ink</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/ivory</item>
+    </style>
+</resources>

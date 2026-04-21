@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Elevasi" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/rose_glow</item>
+        <item name="colorOnPrimary">@color/midnight_moss</item>
+        <item name="colorSecondary">@color/sage_mist</item>
+        <item name="colorOnSecondary">@color/midnight_moss</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/midnight_moss</item>
+    </style>
+</resources>

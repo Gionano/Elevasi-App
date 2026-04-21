@@ -1,0 +1,76 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Android Studio / IDE
+*.iml
+.gradle/
+/.kotlin/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/shelf
+/.idea/deployment.xml
+/.idea/inspectionProfiles
+/.idea/compiler.xml
+/.vscode/
+
+# Android / Kotlin build outputs
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+**/build/
+app/release/
+app/debug/
+out/
+*.class
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Signing / local secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+env/
+ENV/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Local backend data
+backend/app/*.db
+backend/app/*.db-shm
+backend/app/*.db-wal
+
+# Logs and env files
+*.log
+*.pid
+*.pid.lock
+.env
+.env.*
+
+# Docker local overrides
+docker-compose.override.yml
