@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LocalFlorist
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class ElevasiDestination(
@@ -30,6 +31,12 @@ sealed class ElevasiDestination(
         icon = Icons.Outlined.LocalFlorist
     )
 
+    data object Mading : ElevasiDestination(
+        route = "mading",
+        label = "Mading",
+        icon = Icons.Outlined.PushPin
+    )
+
     data object Journal : ElevasiDestination(
         route = "journal",
         label = "Dialog",
@@ -37,6 +44,6 @@ sealed class ElevasiDestination(
     )
 
     companion object {
-        val topLevel = listOf(Dashboard, Plant, DailyVerse, Journal)
+        val topLevel = listOf(Dashboard, Plant, Mading, DailyVerse, Journal)
     }
 }
