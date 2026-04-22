@@ -4,11 +4,15 @@ import com.example.elevasi.data.model.DailyVerseDto
 import com.example.elevasi.data.remote.ElevasiApiService
 import com.example.elevasi.data.remote.RetrofitClient
 import java.time.LocalDate
+import java.time.OffsetDateTime
 
 class VerseRepository(
     private val apiService: ElevasiApiService = RetrofitClient.apiService
 ) {
-    suspend fun getTodayVerse(): DailyVerseDto = apiService.getTodayVerse()
+    suspend fun getTodayVerse(): DailyVerseDto {
+        val timezoneOffsetMinutes = OffsetDateTime.now().offset.totalSeconds / 60
+        return apiService.getTodayVerse(timezoneOffsetMinutes)
+    }
 
     fun fallbackVerse(): DailyVerseDto {
         val verses = listOf(

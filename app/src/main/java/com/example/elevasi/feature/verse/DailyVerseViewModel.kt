@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class DailyVerseUiState(
     val isLoading: Boolean = true,
@@ -20,12 +21,25 @@ class DailyVerseViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DailyVerseUiState())
     val uiState: StateFlow<DailyVerseUiState> = _uiState.asStateFlow()
+    private var lastLoadedDate: LocalDate? = null
 
     init {
         loadDailyVerse()
     }
 
-    fun loadDailyVerse() {
+    fun refreshIfNeeded() {
+        val today = LocalDate.now()
+        if (_uiState.value.verse == null || lastLoadedDate != today) {
+            loadDailyVerse(force = true)
+        }
+    }
+
+    fun loadDailyVerse(force: Boolean = false) {
+        val today = LocalDate.now()
+        if (!force && _uiState.value.verse != null && lastLoadedDate == today) {
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
@@ -33,12 +47,14 @@ class DailyVerseViewModel(
                 repository.getTodayVerse()
             }.fold(
                 onSuccess = { verse ->
+                    lastLoadedDate = today
                     DailyVerseUiState(
                         isLoading = false,
                         verse = verse
                     )
                 },
                 onFailure = {
+                    lastLoadedDate = today
                     DailyVerseUiState(
                         isLoading = false,
                         verse = repository.fallbackVerse(),
