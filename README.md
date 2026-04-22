@@ -16,6 +16,7 @@ Elevasi adalah aplikasi Android untuk refleksi diri, disiplin emosional, dan kon
 - Reaction emoji ringan antar pasangan
 - Ruang Dialog Terkunci untuk refleksi mingguan dua arah
 - Gerbang Langit / Daily Verse dengan koleksi verse harian yang berotasi
+- Interactive Mading / Sticky Notes dengan drag-and-drop realtime via WebSocket
 - Midnight Surprise Mode untuk takeover tema ulang tahun
 - Notifikasi lokal terjadwal dengan `NotificationChannel` dan `AlarmManager`
 - Self-hosted in-app update untuk cek versi APK terbaru dari server sendiri
@@ -30,13 +31,14 @@ Elevasi/
 |  |  |- app/              # Entry app, onboarding, app-level state
 |  |  |- core/             # Navigation, notifications, util
 |  |  |- data/             # Model API, repository, Retrofit
-|  |  |- feature/          # Dashboard, verse, journal, plant
+|  |  |- feature/          # Dashboard, verse, journal, plant, mading
 |  |  |- ui/               # Theme dan reusable UI components
 |  |- src/main/res/        # Resource Android, icon, lottie, xml
 |- backend/
 |  |- app/main.py          # FastAPI app utama
 |  |- requirements.txt     # Dependency Python
 |  |- Dockerfile           # Image backend
+|- docker-compose.yml      # Compose untuk deploy backend
 |- README.md
 ```
 
@@ -103,6 +105,45 @@ Catatan:
 - Port internal container tetap `8000`
 - Jika host port diganti, `API_BASE_URL` di Android juga harus ikut diganti
 
+## Menjalankan Backend Dengan Docker Compose
+
+File `docker-compose.yml` sudah disiapkan untuk deployment yang lebih stabil di server.
+
+Jalankan:
+
+```powershell
+docker compose up -d --build
+```
+
+Yang dilakukan compose ini:
+
+- build image dari `./backend`
+- expose backend ke host port default `18000`
+- menyimpan database SQLite ke `./docker-data/elevasi.db`
+- menyimpan file APK self-hosted update ke `./docker-data/apk`
+- restart otomatis dengan `unless-stopped`
+
+Jika ingin ganti port atau timezone, buat file `.env` di root project:
+
+```env
+ELEVASI_PORT=18000
+ELEVASI_TZ=Asia/Bangkok
+```
+
+Update backend setelah ada perubahan `main.py`:
+
+```powershell
+docker compose up -d --build
+```
+
+Kalau sebelumnya backend masih jalan dari `docker run` manual, pindah ke compose sekali saja:
+
+```powershell
+docker stop elevasi-api
+docker rm elevasi-api
+docker compose up -d --build
+```
+
 ## Menjalankan Android App
 
 Buka project root `Elevasi` di Android Studio, tunggu Gradle sync selesai, lalu jalankan ke emulator atau HP fisik.
@@ -157,6 +198,12 @@ Install langsung ke device yang terhubung:
 - `GET /plant/status`
 - `POST /plant/add-exp`
 
+### Interactive Mading
+
+- `GET /mading/notes`
+- `POST /mading/notes`
+- `WS /ws/mading`
+
 ### Daily Verse
 
 - `GET /api/v1/verse/today`
@@ -174,10 +221,16 @@ Install langsung ke device yang terhubung:
 
 Backend me-mount folder statis untuk file APK dan mengembalikan metadata update lewat `GET /check-update`.
 
-Folder APK:
+Folder APK default saat jalan lokal biasa:
 
 ```text
 backend/app/static/apk/
+```
+
+Folder APK saat jalan lewat compose:
+
+```text
+docker-data/apk/
 ```
 
 Agar update dialog muncul di app:
@@ -200,11 +253,40 @@ Mekanik dasar:
 - Maksimum level `4`
 - Status layu aktif jika tidak ada interaksi selama `3 hari`
 
+## Interactive Mading
+
+Fitur mading memakai kombinasi REST + WebSocket:
+
+- `GET /mading/notes` untuk memuat semua sticky note saat screen dibuka
+- `POST /mading/notes` untuk menambah sticky note baru
+- `WS /ws/mading` untuk broadcast pergerakan sticky note secara realtime
+
+Struktur data note saat ini:
+
+- `id`
+- `text`
+- `color`
+- `x_position`
+- `y_position`
+- `rotation`
+
+Di Android, drag note di-update langsung di UI lokal, lalu posisi terbaru dikirim secara throttled lewat WebSocket agar tetap ringan saat digeser terus-menerus.
+
+## Daily Verse
+
+Verse harian sekarang dipilih berdasarkan tanggal client:
+
+- Android mengirim `tz_offset_minutes` ke backend
+- backend memilih verse berdasarkan tanggal lokal device, bukan hanya tanggal server
+- screen verse akan refresh lagi saat `resume` jika hari sudah berganti
+
 ## Catatan Pengembangan
 
-- Backend memakai SQLite lokal di `backend/app/elevasi.db`
+- Backend memakai SQLite lokal di `backend/app/elevasi.db` saat jalan biasa
+- Jika jalan lewat compose, database dipindahkan ke `docker-data/elevasi.db`
 - File database lokal sudah diabaikan oleh `.gitignore`
 - Jika backend berubah dan dijalankan lewat Docker, image perlu dibuild ulang
+- `docker compose up -d --build` adalah alur update backend yang direkomendasikan di server
 - Untuk Android versi baru, koneksi HTTP lokal memerlukan konfigurasi cleartext yang sudah disiapkan di manifest dan network security config
 
 ## Rekomendasi Penggunaan
