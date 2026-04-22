@@ -3,6 +3,7 @@ package com.example.elevasi.data.remote
 import com.example.elevasi.data.model.AppUpdateInfoDto
 import com.example.elevasi.data.model.AddPlantExpRequest
 import com.example.elevasi.data.model.BirthdayStateDto
+import com.example.elevasi.data.model.CreateStickyNoteRequest
 import com.example.elevasi.data.model.DailyVerseDto
 import com.example.elevasi.data.model.HabitSummaryDto
 import com.example.elevasi.data.model.HealthResponse
@@ -14,6 +15,7 @@ import com.example.elevasi.data.model.ReactionInboxDto
 import com.example.elevasi.data.model.ReflectionDialogDto
 import com.example.elevasi.data.model.RegisterUserRequest
 import com.example.elevasi.data.model.SendReactionRequest
+import com.example.elevasi.data.model.StickyNoteDto
 import com.example.elevasi.data.model.SubmitReflectionRequest
 import com.example.elevasi.data.model.UpdatePresenceStatusRequest
 import com.example.elevasi.data.model.UserSessionDto
@@ -92,11 +94,21 @@ interface ElevasiApiService {
         @Body request: AddPlantExpRequest
     ): VirtualPlantStatusDto
 
+    @GET("mading/notes")
+    suspend fun getStickyNotes(): List<StickyNoteDto>
+
+    @POST("mading/notes")
+    suspend fun createStickyNote(
+        @Body request: CreateStickyNoteRequest
+    ): StickyNoteDto
+
     @GET("api/v1/habits/today")
     suspend fun getTodayHabits(): List<HabitSummaryDto>
 
     @GET("api/v1/verse/today")
-    suspend fun getTodayVerse(): DailyVerseDto
+    suspend fun getTodayVerse(
+        @Query("tz_offset_minutes") timezoneOffsetMinutes: Int
+    ): DailyVerseDto
 
     @POST("api/v1/journal")
     suspend fun submitJournalEntry(
