@@ -1,0 +1,14 @@
+services:
+  elevasi-api:
+    build:
+      context: ./backend
+    container_name: elevasi-api
+    restart: unless-stopped
+    environment:
+      TZ: ${ELEVASI_TZ:-Asia/Bangkok}
+      ELEVASI_DB_PATH: /data/elevasi.db
+      ELEVASI_APK_DIR: /data/apk
+    ports:
+      - "${ELEVASI_PORT:-18000}:8000"
+    volumes:
+      - ./docker-data:/data
