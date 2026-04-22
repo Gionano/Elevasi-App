@@ -23,6 +23,23 @@ object RetrofitClient {
         .writeTimeout(20, TimeUnit.SECONDS)
         .build()
 
+    val webSocketClient: OkHttpClient
+        get() = okHttpClient
+
+    fun webSocketUrl(path: String): String {
+        val normalizedBaseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
+        val protocolAwareBaseUrl = when {
+            normalizedBaseUrl.startsWith("https://") -> {
+                "wss://${normalizedBaseUrl.removePrefix("https://")}"
+            }
+            normalizedBaseUrl.startsWith("http://") -> {
+                "ws://${normalizedBaseUrl.removePrefix("http://")}"
+            }
+            else -> normalizedBaseUrl
+        }
+        return "$protocolAwareBaseUrl/${path.trimStart('/')}"
+    }
+
     val apiService: ElevasiApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BuildConfig.API_BASE_URL)
