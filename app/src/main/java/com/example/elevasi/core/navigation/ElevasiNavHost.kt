@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import com.example.elevasi.data.model.UserSessionDto
 import com.example.elevasi.feature.dashboard.DashboardScreen
 import com.example.elevasi.feature.journal.JournalScreen
+import com.example.elevasi.feature.mading.InteractiveMadingScreen
 import com.example.elevasi.feature.plant.VirtualPlantScreen
 import com.example.elevasi.feature.verse.DailyVerseScreen
 
@@ -34,6 +35,9 @@ fun ElevasiNavHost(
         }
         composable(ElevasiDestination.Plant.route) {
             VirtualPlantScreen()
+        }
+        composable(ElevasiDestination.Mading.route) {
+            InteractiveMadingScreen(session = session)
         }
         composable(ElevasiDestination.Journal.route) {
             JournalScreen(session = session)
