@@ -117,6 +117,30 @@ data class AddPlantExpRequest(
     val amount: Int
 )
 
+data class StickyNoteDto(
+    val id: Int,
+    val text: String,
+    val color: String,
+    val xPosition: Float,
+    val yPosition: Float,
+    val rotation: Float
+)
+
+data class CreateStickyNoteRequest(
+    val text: String,
+    val color: String? = null,
+    val xPosition: Float? = null,
+    val yPosition: Float? = null
+)
+
+data class StickyNoteMoveMessage(
+    val type: String = "move_note",
+    val noteId: Int,
+    val xPosition: Float,
+    val yPosition: Float,
+    val rotation: Float
+)
+
 data class JournalEntryRequest(
     val content: String
 )
