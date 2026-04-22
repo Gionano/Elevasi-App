@@ -1,12 +1,15 @@
+import asyncio
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
+import os
 from pathlib import Path
+import random
 import sqlite3
 
-from fastapi import FastAPI, HTTPException, Query, Request, status
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 
 app = FastAPI(
@@ -235,6 +238,51 @@ class AddPlantExpRequest(BaseModel):
     amount: int = Field(ge=1, le=1000)
 
 
+class StickyNoteResponse(BaseModel):
+    id: int
+    text: str = Field(min_length=1, max_length=220)
+    color: str
+    x_position: float = Field(alias="xPosition")
+    y_position: float = Field(alias="yPosition")
+    rotation: float
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class CreateStickyNoteRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=220)
+    color: str | None = None
+    x_position: float | None = Field(default=None, alias="xPosition")
+    y_position: float | None = Field(default=None, alias="yPosition")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class StickyNoteMoveMessage(BaseModel):
+    type: str
+    note_id: int = Field(alias="noteId", ge=1)
+    x_position: float = Field(alias="xPosition")
+    y_position: float = Field(alias="yPosition")
+    rotation: float
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class StickyNoteSocketEnvelope(BaseModel):
+    type: str
+    note: StickyNoteResponse
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
 class JournalEntryCreate(BaseModel):
     content: str = Field(min_length=10, max_length=4000)
 
@@ -246,8 +294,8 @@ class JournalEntryResponse(BaseModel):
 
 APP_DIR = Path(__file__).resolve().parent
 STATIC_DIR = APP_DIR / "static"
-APK_DOWNLOAD_DIR = STATIC_DIR / "apk"
-DB_PATH = APP_DIR / "elevasi.db"
+DB_PATH = Path(os.getenv("ELEVASI_DB_PATH", str(APP_DIR / "elevasi.db")))
+APK_DOWNLOAD_DIR = Path(os.getenv("ELEVASI_APK_DIR", str(STATIC_DIR / "apk")))
 DEFAULT_STATUS_MESSAGE = "Belum ada status yang dikirim hari ini."
 LATEST_APK_FILENAME = "elevasi-latest.apk"
 LATEST_APP_VERSION_CODE = 1
@@ -375,6 +423,13 @@ DAILY_VERSE_LIBRARY = [
 PLANT_EXP_PER_LEVEL = 100
 PLANT_MAX_LEVEL = 4
 PLANT_DECAY_DAYS = 3
+STICKY_NOTE_COLORS = (
+    "#FBE4EC",
+    "#FDE9C9",
+    "#E7F4D7",
+    "#DDEFFC",
+    "#EEE4FF",
+)
 
 PRESENCE_STORE = {
     user: PresenceStatusResponse(
@@ -391,7 +446,51 @@ REACTION_COUNTER = 0
 JOURNAL_ENTRIES: list[str] = []
 
 APK_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 app.mount("/downloads", StaticFiles(directory=APK_DOWNLOAD_DIR), name="apk-downloads")
+
+
+class StickyNoteConnectionManager:
+    def __init__(self) -> None:
+        self._connections: set[WebSocket] = set()
+        self._lock = asyncio.Lock()
+
+    async def connect(self, websocket: WebSocket) -> None:
+        await websocket.accept()
+        async with self._lock:
+            self._connections.add(websocket)
+
+    async def disconnect(self, websocket: WebSocket) -> None:
+        async with self._lock:
+            self._connections.discard(websocket)
+
+    async def broadcast(
+        self,
+        message: StickyNoteSocketEnvelope,
+        exclude: WebSocket | None = None,
+    ) -> None:
+        async with self._lock:
+            targets = list(self._connections)
+
+        stale_connections: list[WebSocket] = []
+        payload = message.model_dump(mode="json", by_alias=True)
+
+        for connection in targets:
+            if connection is exclude:
+                continue
+
+            try:
+                await connection.send_json(payload)
+            except Exception:
+                stale_connections.append(connection)
+
+        if stale_connections:
+            async with self._lock:
+                for connection in stale_connections:
+                    self._connections.discard(connection)
+
+
+STICKY_NOTE_CONNECTIONS = StickyNoteConnectionManager()
 
 
 def utc_now() -> datetime:
@@ -404,6 +503,20 @@ def server_now() -> datetime:
 
 def server_today() -> date:
     return server_now().date()
+
+
+def client_today(tz_offset_minutes: int | None) -> date:
+    if tz_offset_minutes is None:
+        return server_today()
+
+    if not -1080 <= tz_offset_minutes <= 1080:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Timezone offset tidak valid.",
+        )
+
+    client_timezone = timezone(timedelta(minutes=tz_offset_minutes))
+    return datetime.now(timezone.utc).astimezone(client_timezone).date()
 
 
 def get_connection() -> sqlite3.Connection:
@@ -486,6 +599,18 @@ def init_db() -> None:
             VALUES (1, 1, 0, ?)
             """,
             (utc_now().isoformat(),),
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sticky_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                color TEXT NOT NULL,
+                x_position REAL NOT NULL,
+                y_position REAL NOT NULL,
+                rotation REAL NOT NULL
+            )
+            """
         )
 
 
@@ -913,6 +1038,116 @@ def add_virtual_plant_exp(amount: int) -> VirtualPlantStatus:
         current_exp=total_exp,
         last_interaction=last_interaction,
     )
+
+
+def build_sticky_note_response(row: sqlite3.Row) -> StickyNoteResponse:
+    return StickyNoteResponse(
+        id=int(row["id"]),
+        text=row["text"],
+        color=row["color"],
+        xPosition=float(row["x_position"]),
+        yPosition=float(row["y_position"]),
+        rotation=float(row["rotation"]),
+    )
+
+
+def list_sticky_notes() -> list[StickyNoteResponse]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, text, color, x_position, y_position, rotation
+            FROM sticky_notes
+            ORDER BY id ASC
+            """
+        ).fetchall()
+
+    return [build_sticky_note_response(row) for row in rows]
+
+
+def sticky_note_defaults(note_index: int) -> tuple[str, float, float, float]:
+    color = STICKY_NOTE_COLORS[note_index % len(STICKY_NOTE_COLORS)]
+    x_position = 24.0 + ((note_index % 2) * 156.0)
+    y_position = 124.0 + ((note_index // 2) * 152.0)
+    rotation = round(random.uniform(-4.5, 4.5), 2)
+    return color, x_position, y_position, rotation
+
+
+def create_sticky_note(payload: CreateStickyNoteRequest) -> StickyNoteResponse:
+    note_count = len(list_sticky_notes())
+    default_color, default_x, default_y, rotation = sticky_note_defaults(note_count)
+    color = (payload.color or default_color).strip() or default_color
+    text = " ".join(payload.text.split())
+
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO sticky_notes (text, color, x_position, y_position, rotation)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                text,
+                color,
+                payload.x_position if payload.x_position is not None else default_x,
+                payload.y_position if payload.y_position is not None else default_y,
+                rotation,
+            ),
+        )
+        row = connection.execute(
+            """
+            SELECT id, text, color, x_position, y_position, rotation
+            FROM sticky_notes
+            WHERE id = ?
+            """,
+            (cursor.lastrowid,),
+        ).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Sticky note gagal dibuat.",
+        )
+
+    return build_sticky_note_response(row)
+
+
+def update_sticky_note_position(
+    note_id: int,
+    x_position: float,
+    y_position: float,
+    rotation: float,
+) -> StickyNoteResponse:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE sticky_notes
+            SET x_position = ?, y_position = ?, rotation = ?
+            WHERE id = ?
+            """,
+            (x_position, y_position, rotation, note_id),
+        )
+
+        if cursor.rowcount == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sticky note tidak ditemukan.",
+            )
+
+        row = connection.execute(
+            """
+            SELECT id, text, color, x_position, y_position, rotation
+            FROM sticky_notes
+            WHERE id = ?
+            """,
+            (note_id,),
+        ).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sticky note tidak ditemukan.",
+        )
+
+    return build_sticky_note_response(row)
 
 
 def ensure_current_weekly_question() -> sqlite3.Row:
@@ -1343,9 +1578,92 @@ async def add_plant_exp(payload: AddPlantExpRequest) -> VirtualPlantStatus:
     return add_virtual_plant_exp(payload.amount)
 
 
+@app.get(
+    "/mading/notes",
+    response_model=list[StickyNoteResponse],
+    response_model_by_alias=True,
+)
+async def get_mading_notes() -> list[StickyNoteResponse]:
+    return list_sticky_notes()
+
+
+@app.post(
+    "/mading/notes",
+    response_model=StickyNoteResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_mading_note(payload: CreateStickyNoteRequest) -> StickyNoteResponse:
+    note = create_sticky_note(payload)
+    await STICKY_NOTE_CONNECTIONS.broadcast(
+        StickyNoteSocketEnvelope(
+            type="note_created",
+            note=note,
+        )
+    )
+    return note
+
+
+@app.websocket("/ws/mading")
+async def mading_websocket(websocket: WebSocket) -> None:
+    await STICKY_NOTE_CONNECTIONS.connect(websocket)
+    try:
+        while True:
+            raw_message = await websocket.receive_json()
+            try:
+                message = StickyNoteMoveMessage.model_validate(raw_message)
+            except ValidationError as exc:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": exc.errors(),
+                    }
+                )
+                continue
+
+            if message.type != "move_note":
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": "Unsupported sticky note event.",
+                    }
+                )
+                continue
+
+            note = update_sticky_note_position(
+                note_id=message.note_id,
+                x_position=message.x_position,
+                y_position=message.y_position,
+                rotation=message.rotation,
+            )
+            await STICKY_NOTE_CONNECTIONS.broadcast(
+                StickyNoteSocketEnvelope(
+                    type="note_moved",
+                    note=note,
+                ),
+                exclude=websocket,
+            )
+    except WebSocketDisconnect:
+        await STICKY_NOTE_CONNECTIONS.disconnect(websocket)
+    except HTTPException as exc:
+        await websocket.send_json(
+            {
+                "type": "error",
+                "message": exc.detail,
+            }
+        )
+        await STICKY_NOTE_CONNECTIONS.disconnect(websocket)
+    finally:
+        await STICKY_NOTE_CONNECTIONS.disconnect(websocket)
+
+
 @app.get("/api/v1/verse/today", response_model=DailyVerse, response_model_by_alias=True)
-async def get_today_verse() -> DailyVerse:
-    return daily_verse_for_date()
+async def get_today_verse(
+    tz_offset_minutes: int | None = Query(default=None, alias="tz_offset_minutes"),
+) -> DailyVerse:
+    return daily_verse_for_date(
+        current_date=client_today(tz_offset_minutes)
+    )
 
 
 @app.post(
