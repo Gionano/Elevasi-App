@@ -1,0 +1,66 @@
+# Dependensi Node
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build output
+dist/
+dist-ssr/
+*.local
+build/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE dan editor
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.sln.docstates
+*.swp
+*.swo
+*~
+.swp
+.tern-port
+.vscode-test
+.cache/
+.eslintcache
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Vite
+.viteignore
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# Git
+.git/
+
+# IDE Specific
+.vscode-test
+.history/
+*.code-workspace
+
+# OS Specific Files
+desktop.ini
