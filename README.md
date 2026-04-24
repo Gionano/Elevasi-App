@@ -55,7 +55,7 @@ Elevasi/
 Base URL Android saat ini:
 
 ```kotlin
-BuildConfig.API_BASE_URL = "https://app.gionano-storage.cloud/"
+BuildConfig.API_BASE_URL = "http://10.0.2.2:PORT/"
 ```
 
 Jika ingin pindah ke server lokal atau Docker di laptop:
