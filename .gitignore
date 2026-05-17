@@ -74,3 +74,5 @@ backend/app/*.db-wal
 
 # Docker local overrides
 docker-compose.override.yml
+
+.idea/
