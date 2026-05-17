@@ -274,9 +274,19 @@ class StickyNoteMoveMessage(BaseModel):
     }
 
 
+class StickyNoteDeleteMessage(BaseModel):
+    type: str
+    note_id: int = Field(alias="noteId", ge=1)
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
 class StickyNoteSocketEnvelope(BaseModel):
     type: str
-    note: StickyNoteResponse
+    note: StickyNoteResponse | None = None
+    note_id: int | None = Field(default=None, alias="noteId")
 
     model_config = {
         "populate_by_name": True,
@@ -424,11 +434,11 @@ PLANT_EXP_PER_LEVEL = 100
 PLANT_MAX_LEVEL = 4
 PLANT_DECAY_DAYS = 3
 STICKY_NOTE_COLORS = (
-    "#FBE4EC",
-    "#FDE9C9",
-    "#E7F4D7",
-    "#DDEFFC",
-    "#EEE4FF",
+    "#F1C9D4",
+    "#F7E7C8",
+    "#E4EEDB",
+    "#DCCEEF",
+    "#F3CCD7",
 )
 
 PRESENCE_STORE = {
@@ -1066,9 +1076,9 @@ def list_sticky_notes() -> list[StickyNoteResponse]:
 
 def sticky_note_defaults(note_index: int) -> tuple[str, float, float, float]:
     color = STICKY_NOTE_COLORS[note_index % len(STICKY_NOTE_COLORS)]
-    x_position = 24.0 + ((note_index % 2) * 156.0)
-    y_position = 124.0 + ((note_index // 2) * 152.0)
-    rotation = round(random.uniform(-4.5, 4.5), 2)
+    x_position = 18.0 + ((note_index % 2) * 178.0)
+    y_position = 18.0 + ((note_index // 2) * 126.0)
+    rotation = round(random.uniform(-3.8, 3.8), 2)
     return color, x_position, y_position, rotation
 
 
@@ -1148,6 +1158,25 @@ def update_sticky_note_position(
         )
 
     return build_sticky_note_response(row)
+
+
+def delete_sticky_note(note_id: int) -> int:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            DELETE FROM sticky_notes
+            WHERE id = ?
+            """,
+            (note_id,),
+        )
+
+    if cursor.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sticky note tidak ditemukan.",
+        )
+
+    return note_id
 
 
 def ensure_current_weekly_question() -> sqlite3.Row:
@@ -1610,38 +1639,70 @@ async def mading_websocket(websocket: WebSocket) -> None:
     try:
         while True:
             raw_message = await websocket.receive_json()
-            try:
-                message = StickyNoteMoveMessage.model_validate(raw_message)
-            except ValidationError as exc:
+            message_type = str(raw_message.get("type", "")).strip()
+            if not message_type:
                 await websocket.send_json(
                     {
                         "type": "error",
-                        "message": exc.errors(),
+                        "message": "Sticky note event membutuhkan field type.",
                     }
                 )
                 continue
 
-            if message.type != "move_note":
-                await websocket.send_json(
-                    {
-                        "type": "error",
-                        "message": "Unsupported sticky note event.",
-                    }
+            if message_type == "move_note":
+                try:
+                    message = StickyNoteMoveMessage.model_validate(raw_message)
+                except ValidationError as exc:
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": exc.errors(),
+                        }
+                    )
+                    continue
+
+                note = update_sticky_note_position(
+                    note_id=message.note_id,
+                    x_position=message.x_position,
+                    y_position=message.y_position,
+                    rotation=message.rotation,
+                )
+                await STICKY_NOTE_CONNECTIONS.broadcast(
+                    StickyNoteSocketEnvelope(
+                        type="note_moved",
+                        note=note,
+                    ),
+                    exclude=websocket,
                 )
                 continue
 
-            note = update_sticky_note_position(
-                note_id=message.note_id,
-                x_position=message.x_position,
-                y_position=message.y_position,
-                rotation=message.rotation,
-            )
-            await STICKY_NOTE_CONNECTIONS.broadcast(
-                StickyNoteSocketEnvelope(
-                    type="note_moved",
-                    note=note,
-                ),
-                exclude=websocket,
+            if message_type == "delete_note":
+                try:
+                    message = StickyNoteDeleteMessage.model_validate(raw_message)
+                except ValidationError as exc:
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": exc.errors(),
+                        }
+                    )
+                    continue
+
+                deleted_note_id = delete_sticky_note(message.note_id)
+                await STICKY_NOTE_CONNECTIONS.broadcast(
+                    StickyNoteSocketEnvelope(
+                        type="note_deleted",
+                        noteId=deleted_note_id,
+                    ),
+                    exclude=websocket,
+                )
+                continue
+
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": "Unsupported sticky note event.",
+                }
             )
     except WebSocketDisconnect:
         await STICKY_NOTE_CONNECTIONS.disconnect(websocket)
