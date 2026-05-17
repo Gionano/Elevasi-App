@@ -141,6 +141,11 @@ data class StickyNoteMoveMessage(
     val rotation: Float
 )
 
+data class StickyNoteDeleteMessage(
+    val type: String = "delete_note",
+    val noteId: Int
+)
+
 data class JournalEntryRequest(
     val content: String
 )
