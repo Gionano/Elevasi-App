@@ -6,44 +6,62 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class ElevasiDestination(
     val route: String,
     val label: String,
-    val icon: ImageVector
+    val iconOutlined: ImageVector,
+    val iconFilled: ImageVector
 ) {
-    data object Dashboard : ElevasiDestination(
-        route = "dashboard",
-        label = "Presence",
-        icon = Icons.Outlined.Home
+    // ── Primary tabs (Bottom Navigation) ──────────────────────────
+    data object Beranda : ElevasiDestination(
+        route = "beranda",
+        label = "Beranda",
+        iconOutlined = Icons.Outlined.Home,
+        iconFilled = Icons.Filled.Home
     )
 
-    data object DailyVerse : ElevasiDestination(
-        route = "daily_verse",
-        label = "Gerbang Langit",
-        icon = Icons.Outlined.AutoStories
-    )
-
-    data object Plant : ElevasiDestination(
-        route = "plant",
-        label = "Plant",
-        icon = Icons.Outlined.LocalFlorist
+    data object Taman : ElevasiDestination(
+        route = "taman",
+        label = "Taman",
+        iconOutlined = Icons.Outlined.LocalFlorist,
+        iconFilled = Icons.Filled.LocalFlorist
     )
 
     data object Mading : ElevasiDestination(
         route = "mading",
         label = "Mading",
-        icon = Icons.Outlined.PushPin
+        iconOutlined = Icons.Outlined.PushPin,
+        iconFilled = Icons.Filled.PushPin
     )
 
-    data object Journal : ElevasiDestination(
-        route = "journal",
+    data object VerseHarian : ElevasiDestination(
+        route = "verse_harian",
+        label = "Verse",
+        iconOutlined = Icons.Outlined.AutoStories,
+        iconFilled = Icons.Filled.AutoStories
+    )
+
+    data object Dialog : ElevasiDestination(
+        route = "dialog",
         label = "Dialog",
-        icon = Icons.Outlined.Lock
+        iconOutlined = Icons.Outlined.Lock,
+        iconFilled = Icons.Filled.Lock
     )
 
     companion object {
-        val topLevel = listOf(Dashboard, Plant, Mading, DailyVerse, Journal)
+        val topLevel = listOf(Beranda, Taman, Mading, VerseHarian, Dialog)
     }
+}
+
+// ── Extra routes (not in bottom bar) ──────────────────────────────
+object ElevasiRoutes {
+    const val PENGATURAN_AKUN = "pengaturan_akun"
+    const val TULIS_POSTINGAN = "tulis_postingan"
 }
