@@ -18,11 +18,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private val StickyNotePalette = listOf(
-    "#FBE4EC",
-    "#FDE9C9",
-    "#E7F4D7",
-    "#DDEFFC",
-    "#EEE4FF"
+    "#F1C9D4",
+    "#F7E7C8",
+    "#E4EEDB",
+    "#DCCEEF",
+    "#F3CCD7"
 )
 
 data class InteractiveMadingUiState(
@@ -76,7 +76,9 @@ class InteractiveMadingViewModel(
                     _uiState.update { current ->
                         current.copy(
                             isLoading = false,
-                            notes = notes.sortedBy { it.id },
+                            notes = notes
+                                .map(::clampStickyNote)
+                                .sortedBy { it.id },
                             errorMessage = null
                         )
                     }
@@ -160,11 +162,14 @@ class InteractiveMadingViewModel(
         yPosition: Float,
         rotation: Float
     ) {
-        val updatedNote = _uiState.value.notes.firstOrNull { it.id == noteId }?.copy(
-            xPosition = xPosition,
-            yPosition = yPosition,
-            rotation = rotation
-        ) ?: return
+        val updatedNote = _uiState.value.notes.firstOrNull { it.id == noteId }
+            ?.copy(
+                xPosition = xPosition,
+                yPosition = yPosition,
+                rotation = rotation
+            )
+            ?.let(::clampStickyNote)
+            ?: return
 
         upsertNote(updatedNote)
         queueMove(updatedNote, immediate = false)
@@ -173,6 +178,19 @@ class InteractiveMadingViewModel(
     fun finishNoteDrag(noteId: Int) {
         val latestNote = _uiState.value.notes.firstOrNull { it.id == noteId } ?: return
         queueMove(latestNote, immediate = true)
+    }
+
+    fun deleteNote(noteId: Int) {
+        val wasSent = repository.sendDelete(noteId)
+        if (wasSent) {
+            removeNote(noteId)
+        } else {
+            _uiState.update { current ->
+                current.copy(
+                    errorMessage = "Sticky note belum bisa dihapus karena koneksi realtime belum aktif."
+                )
+            }
+        }
     }
 
     private fun observeRealtime() {
@@ -189,6 +207,7 @@ class InteractiveMadingViewModel(
                 when (event) {
                     is MadingSocketEvent.NoteCreated -> upsertNote(event.note)
                     is MadingSocketEvent.NoteMoved -> upsertNote(event.note)
+                    is MadingSocketEvent.NoteDeleted -> removeNote(event.noteId)
                     is MadingSocketEvent.Error -> {
                         _uiState.update { current ->
                             current.copy(errorMessage = event.message)
@@ -242,14 +261,26 @@ class InteractiveMadingViewModel(
     }
 
     private fun upsertNote(note: StickyNoteDto) {
+        val normalizedNote = clampStickyNote(note)
         _uiState.update { current ->
             val updatedNotes = current.notes
-                .filterNot { it.id == note.id }
-                .plus(note)
+                .filterNot { it.id == normalizedNote.id }
+                .plus(normalizedNote)
                 .sortedBy { it.id }
 
             current.copy(
                 notes = updatedNotes,
+                errorMessage = null
+            )
+        }
+    }
+
+    private fun removeNote(noteId: Int) {
+        moveJobs.remove(noteId)?.cancel()
+        pendingMoves.remove(noteId)
+        _uiState.update { current ->
+            current.copy(
+                notes = current.notes.filterNot { it.id == noteId },
                 errorMessage = null
             )
         }
