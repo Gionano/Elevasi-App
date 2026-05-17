@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:antialias="true"
-    android:gravity="center"
-    android:src="@drawable/ic_launcher_art" />
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="20%"
+    android:insetRight="20%"
+    android:insetTop="20%"
+    android:insetBottom="20%">
+    <bitmap
+        android:antialias="true"
+        android:gravity="center"
+        android:src="@drawable/ic_launcher_home" />
+</inset>
