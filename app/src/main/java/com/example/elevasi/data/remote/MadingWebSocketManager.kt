@@ -1,6 +1,7 @@
 package com.example.elevasi.data.remote
 
 import com.example.elevasi.data.model.StickyNoteDto
+import com.example.elevasi.data.model.StickyNoteDeleteMessage
 import com.example.elevasi.data.model.StickyNoteMoveMessage
 import com.google.gson.Gson
 import com.google.gson.JsonElement
@@ -24,6 +25,7 @@ import okhttp3.WebSocketListener
 sealed interface MadingSocketEvent {
     data class NoteCreated(val note: StickyNoteDto) : MadingSocketEvent
     data class NoteMoved(val note: StickyNoteDto) : MadingSocketEvent
+    data class NoteDeleted(val noteId: Int) : MadingSocketEvent
     data class Error(val message: String) : MadingSocketEvent
 }
 
@@ -66,6 +68,12 @@ class MadingWebSocketManager(
             yPosition = note.yPosition,
             rotation = note.rotation
         )
+        return socket.send(gson.toJson(payload))
+    }
+
+    fun sendDelete(noteId: Int): Boolean {
+        val socket = webSocket ?: return false
+        val payload = StickyNoteDeleteMessage(noteId = noteId)
         return socket.send(gson.toJson(payload))
     }
 
@@ -125,6 +133,10 @@ class MadingWebSocketManager(
                     _events.tryEmit(MadingSocketEvent.NoteMoved(it))
                 }
 
+                "note_deleted" -> payload.noteId?.let {
+                    _events.tryEmit(MadingSocketEvent.NoteDeleted(it))
+                }
+
                 "error" -> {
                     val errorMessage = payload.message?.toString()?.trim('"')
                         ?: "Sinkronisasi mading mengembalikan error."
@@ -154,6 +166,7 @@ class MadingWebSocketManager(
     private data class StickyNoteSocketPayload(
         val type: String = "",
         val note: StickyNoteDto? = null,
+        val noteId: Int? = null,
         val message: JsonElement? = null
     )
 }
