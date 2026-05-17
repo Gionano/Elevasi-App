@@ -39,6 +39,10 @@ class MadingRepository(
         return webSocketManager.sendMove(note)
     }
 
+    fun sendDelete(noteId: Int): Boolean {
+        return webSocketManager.sendDelete(noteId)
+    }
+
     val events: SharedFlow<MadingSocketEvent>
         get() = webSocketManager.events
 
