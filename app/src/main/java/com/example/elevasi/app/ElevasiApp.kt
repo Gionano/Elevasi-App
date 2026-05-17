@@ -3,28 +3,30 @@ package com.example.elevasi.app
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,11 +44,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.elevasi.core.navigation.ElevasiDestination
 import com.example.elevasi.core.navigation.ElevasiNavHost
+import com.example.elevasi.core.navigation.ElevasiRoutes
 import com.example.elevasi.core.notifications.BirthdayAlarmScheduler
 import com.example.elevasi.data.model.AppUpdateInfoDto
 import com.example.elevasi.data.model.UserSessionDto
+import com.example.elevasi.ui.components.ElevasiBottomBar
+import com.example.elevasi.ui.components.ElevasiTopBar
+import com.example.elevasi.ui.theme.ElevasiBackground
+import com.example.elevasi.ui.theme.ElevasiPrimary
 import com.example.elevasi.ui.theme.ElevasiTheme
 
+// ── Root entry point ──────────────────────────────────────────────
 @Composable
 fun ElevasiApp() {
     val context = LocalContext.current
@@ -67,7 +75,7 @@ fun ElevasiApp() {
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = ElevasiPrimary)
                     }
                 } else {
                     NameRegistrationScreen(
@@ -108,6 +116,7 @@ fun ElevasiApp() {
     )
 }
 
+// ── Main authenticated shell ──────────────────────────────────────
 @Composable
 private fun AuthenticatedElevasiApp(
     session: UserSessionDto,
@@ -132,6 +141,7 @@ private fun AuthenticatedElevasiApp(
 
     ElevasiTheme(isBirthdayMode = isBirthdayMode) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Background decoration layer
             if (isBirthdayMode) {
                 BirthdayModeBackdrop()
             } else {
@@ -140,41 +150,53 @@ private fun AuthenticatedElevasiApp(
 
             Scaffold(
                 containerColor = Color.Transparent,
-                bottomBar = {
-                    FloatingBottomBarShell {
-                        NavigationBar(
-                            containerColor = Color.Transparent
-                        ) {
-                            destinations.forEach { destination ->
-                                NavigationBarItem(
-                                    selected = currentRoute == destination.route,
-                                    onClick = {
-                                        navController.navigate(destination.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    icon = {
-                                        Icon(
-                                            imageVector = destination.icon,
-                                            contentDescription = destination.label
-                                        )
-                                    },
-                                    label = {
-                                        Text(text = destination.label)
-                                    }
-                                )
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                topBar = {
+                    ElevasiTopBar(
+                        userName = session.name,
+                        onProfileClick = {
+                            navController.navigate(ElevasiRoutes.PENGATURAN_AKUN) {
+                                launchSingleTop = true
                             }
+                        }
+                    )
+                },
+                bottomBar = {
+                    ElevasiBottomBar(
+                        destinations = destinations,
+                        currentRoute = currentRoute,
+                        onDestinationClick = { destination ->
+                            navController.navigate(destination.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                },
+                floatingActionButton = {
+                    // FAB only visible on Beranda tab
+                    AnimatedVisibility(
+                        visible = currentRoute == ElevasiDestination.Beranda.route,
+                        enter = scaleIn(initialScale = 0.6f) + fadeIn(),
+                        exit = scaleOut(targetScale = 0.6f) + fadeOut()
+                    ) {
+                        FloatingActionButton(
+                            onClick = {
+                                navController.navigate(ElevasiRoutes.TULIS_POSTINGAN) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            shape = CircleShape,
+                            containerColor = ElevasiPrimary,
+                            contentColor = Color.White
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "Tulis Postingan"
+                            )
                         }
                     }
                 }
@@ -198,35 +220,7 @@ private fun AuthenticatedElevasiApp(
     }
 }
 
-@Composable
-private fun FloatingBottomBarShell(
-    content: @Composable BoxScope.() -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Surface(
-            modifier = Modifier.widthIn(max = 620.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            shape = MaterialTheme.shapes.extraLarge,
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-            ),
-            tonalElevation = 8.dp,
-            shadowElevation = 12.dp
-        ) {
-            Box(
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                content = content
-            )
-        }
-    }
-}
-
+// ── In-app update dialog ──────────────────────────────────────────
 @Composable
 private fun InAppUpdateDialog(
     updateInfo: AppUpdateInfoDto?,
