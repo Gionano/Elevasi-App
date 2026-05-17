@@ -6,7 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.elevasi.data.model.UserSessionDto
-import com.example.elevasi.feature.dashboard.DashboardScreen
+import com.example.elevasi.feature.beranda.FeedScreen
 import com.example.elevasi.feature.journal.JournalScreen
 import com.example.elevasi.feature.mading.InteractiveMadingScreen
 import com.example.elevasi.feature.plant.VirtualPlantScreen
@@ -21,26 +21,40 @@ fun ElevasiNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = ElevasiDestination.Dashboard.route,
+        startDestination = ElevasiDestination.Beranda.route,
         modifier = modifier
     ) {
-        composable(ElevasiDestination.Dashboard.route) {
-            DashboardScreen(session = session)
+        // ── Primary tabs ──────────────────────────────────────────
+        composable(ElevasiDestination.Beranda.route) {
+            FeedScreen(session = session)
         }
-        composable(ElevasiDestination.DailyVerse.route) {
+
+        composable(ElevasiDestination.Taman.route) {
+            VirtualPlantScreen()
+        }
+
+        composable(ElevasiDestination.Mading.route) {
+            InteractiveMadingScreen(session = session)
+        }
+
+        composable(ElevasiDestination.VerseHarian.route) {
             DailyVerseScreen(
                 session = session,
                 isBirthdayMode = isBirthdayMode
             )
         }
-        composable(ElevasiDestination.Plant.route) {
-            VirtualPlantScreen()
-        }
-        composable(ElevasiDestination.Mading.route) {
-            InteractiveMadingScreen(session = session)
-        }
-        composable(ElevasiDestination.Journal.route) {
+
+        composable(ElevasiDestination.Dialog.route) {
             JournalScreen(session = session)
+        }
+
+        // ── Extra routes ──────────────────────────────────────────
+        composable(ElevasiRoutes.PENGATURAN_AKUN) {
+            // TODO: PengaturanAkunScreen(session = session)
+        }
+
+        composable(ElevasiRoutes.TULIS_POSTINGAN) {
+            // TODO: TulisPostinganScreen(session = session)
         }
     }
 }
