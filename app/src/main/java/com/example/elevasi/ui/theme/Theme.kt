@@ -10,49 +10,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
-private val ElevasiLightScheme = lightColorScheme(
+// ── Light Color Scheme (Warm Ivory + Rose Gold) ──────────────────────
+private val LightColorScheme = lightColorScheme(
     primary = ElevasiPrimary,
-    onPrimary = ElevasiOnPrimary,
-    primaryContainer = ElevasiSurface,
-    onPrimaryContainer = ElevasiPrimaryDark,
-    secondary = ElevasiPrimaryLight,
+    onPrimary = Color.White,
+    primaryContainer = ElevasiPrimaryContainer,
+    onPrimaryContainer = ElevasiOnPrimaryContainer,
+    secondary = ElevasiSurfaceContainer,
     onSecondary = ElevasiTextPrimary,
-    secondaryContainer = ElevasiSurface,
-    onSecondaryContainer = ElevasiTextPrimary,
-    tertiary = ElevasiPrimaryLight,
-    onTertiary = ElevasiOnPrimary,
-    tertiaryContainer = ElevasiSurfaceDim,
-    onTertiaryContainer = ElevasiTextPrimary,
+    tertiary = ElevasiPrimaryDark,
     background = ElevasiBackground,
     onBackground = ElevasiTextPrimary,
-    surface = ElevasiBackground,
+    surface = ElevasiSurface,
     onSurface = ElevasiTextPrimary,
-    surfaceVariant = ElevasiSurface,
+    surfaceVariant = ElevasiSurfaceContainer,
     onSurfaceVariant = ElevasiTextSecondary,
-    surfaceContainerLowest = ElevasiBackground,
     surfaceContainerLow = ElevasiBackground,
     surfaceContainer = ElevasiBackground,
     surfaceContainerHigh = ElevasiSurface,
-    surfaceContainerHighest = ElevasiSurfaceDim,
-    outline = ElevasiDivider,
-    outlineVariant = ElevasiDivider.copy(alpha = 0.5f)
+    outline = ElevasiTextSecondary.copy(alpha = 0.3f),
+    outlineVariant = ElevasiTextSecondary.copy(alpha = 0.15f)
 )
 
-private val ElevasiDarkScheme = darkColorScheme(
-    primary = ElevasiPrimaryLight,
-    onPrimary = ElevasiDarkBackground,
-    primaryContainer = ElevasiPrimaryDark,
-    onPrimaryContainer = ElevasiDarkOnSurface,
-    secondary = ElevasiPrimaryLight,
-    onSecondary = ElevasiDarkBackground,
-    background = ElevasiDarkBackground,
-    onBackground = ElevasiDarkOnSurface,
-    surface = ElevasiDarkSurface,
-    onSurface = ElevasiDarkOnSurface,
-    surfaceVariant = ElevasiDarkSurface,
-    onSurfaceVariant = ElevasiDarkMuted
+// ── Dark Color Scheme ────────────────────────────────────────────────
+private val DarkColorScheme = darkColorScheme(
+    primary = RoseGlow,
+    onPrimary = MossNight,
+    secondary = SageMist,
+    onSecondary = MossNight,
+    tertiary = Sandstone,
+    background = MossNight,
+    onBackground = Ivory,
+    surface = WarmSlate,
+    onSurface = Ivory,
+    surfaceVariant = WarmSlate,
+    onSurfaceVariant = RoseGlow
 )
 
+// ── Birthday Color Scheme ────────────────────────────────────────────
 private val BirthdayColorScheme = lightColorScheme(
     primary = MagentaBloom,
     onPrimary = PetalMist,
@@ -71,6 +66,7 @@ private val BirthdayColorScheme = lightColorScheme(
     onTertiaryContainer = BerryInk
 )
 
+// ── Shapes ───────────────────────────────────────────────────────────
 private val ElevasiShapes = Shapes(
     small = RoundedCornerShape(16.dp),
     medium = RoundedCornerShape(22.dp),
@@ -87,8 +83,8 @@ fun ElevasiTheme(
     MaterialTheme(
         colorScheme = when {
             isBirthdayMode -> BirthdayColorScheme
-            darkTheme -> ElevasiDarkScheme
-            else -> ElevasiLightScheme
+            darkTheme -> DarkColorScheme
+            else -> LightColorScheme
         },
         typography = ElevasiTypography,
         shapes = ElevasiShapes,
