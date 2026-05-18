@@ -154,3 +154,83 @@ data class JournalEntryResponse(
     val id: Int,
     val message: String
 )
+
+// ── Feed / Kertas Terbang ────────────────────────────────────────────
+
+data class FeedPostDto(
+    val id: Int,
+    @SerializedName("author_name")
+    val authorName: String,
+    val content: String,
+    @SerializedName("created_at")
+    val createdAt: String,
+    @SerializedName("is_pinned")
+    val isPinned: Boolean,
+    @SerializedName("likes_count")
+    val likesCount: Int,
+    @SerializedName("media_urls")
+    val mediaUrls: List<String> = emptyList(),
+    @SerializedName("replies_count")
+    val repliesCount: Int = 0
+)
+
+data class ReplyDto(
+    val id: Int,
+    @SerializedName("post_id")
+    val postId: Int,
+    @SerializedName("author_name")
+    val authorName: String,
+    val content: String,
+    @SerializedName("media_urls")
+    val mediaUrls: List<String> = emptyList(),
+    @SerializedName("created_at")
+    val createdAt: String
+)
+
+data class FeedPostCreateRequest(
+    val content: String,
+    @SerializedName("author_name")
+    val authorName: String
+)
+
+data class FeedPostLikeResponse(
+    val id: Int,
+    @SerializedName("likes_count")
+    val likesCount: Int
+)
+
+data class FeedPostPinResponse(
+    val id: Int,
+    @SerializedName("is_pinned")
+    val isPinned: Boolean
+)
+
+// ── Profile / Pengaturan Akun ────────────────────────────────────────
+
+data class ProfileDto(
+    @SerializedName("display_name")
+    val displayName: String,
+    val bio: String,
+    @SerializedName("birthday_month")
+    val birthdayMonth: Int,
+    @SerializedName("birthday_day")
+    val birthdayDay: Int,
+    @SerializedName("avatar_url")
+    val avatarUrl: String
+)
+
+data class AvatarUploadResponse(
+    @SerializedName("avatar_url")
+    val avatarUrl: String
+)
+
+data class ProfileUpdateRequest(
+    @SerializedName("display_name")
+    val displayName: String,
+    val bio: String,
+    @SerializedName("birthday_month")
+    val birthdayMonth: Int,
+    @SerializedName("birthday_day")
+    val birthdayDay: Int
+)
+
