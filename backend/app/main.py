@@ -5,8 +5,9 @@ import os
 from pathlib import Path
 import random
 import sqlite3
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status, Form, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
@@ -302,8 +303,81 @@ class JournalEntryResponse(BaseModel):
     message: str
 
 
+# ── Feed / Kertas Terbang ─────────────────────────────────────────────
+
+class PostCreate(BaseModel):
+    content: str = Field(min_length=10, max_length=2000)
+    author_name: str = Field(alias="author_name", min_length=1, max_length=60)
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class PostResponse(BaseModel):
+    id: int
+    author_name: str = Field(alias="author_name")
+    content: str
+    created_at: datetime = Field(alias="created_at")
+    is_pinned: bool = Field(alias="is_pinned")
+    likes_count: int = Field(alias="likes_count")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class PostLikeResponse(BaseModel):
+    id: int
+    likes_count: int = Field(alias="likes_count")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class PostPinResponse(BaseModel):
+    id: int
+    is_pinned: bool = Field(alias="is_pinned")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class ProfileResponse(BaseModel):
+    display_name: str = Field(alias="display_name")
+    bio: str
+    birthday_month: int = Field(alias="birthday_month")
+    birthday_day: int = Field(alias="birthday_day")
+    avatar_url: str = Field(alias="avatar_url")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class ProfileUpdatePayload(BaseModel):
+    display_name: str = Field(alias="display_name", min_length=1, max_length=60)
+    bio: str = Field(default="", max_length=500)
+    birthday_month: int = Field(alias="birthday_month", ge=1, le=12)
+    birthday_day: int = Field(alias="birthday_day", ge=1, le=31)
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class AvatarUploadResponse(BaseModel):
+    avatar_url: str = Field(alias="avatar_url")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
 APP_DIR = Path(__file__).resolve().parent
-STATIC_DIR = APP_DIR / "static"
+STATIC_DIR = Path(os.getenv("ELEVASI_STATIC_DIR", str(APP_DIR / "static")))
 DB_PATH = Path(os.getenv("ELEVASI_DB_PATH", str(APP_DIR / "elevasi.db")))
 APK_DOWNLOAD_DIR = Path(os.getenv("ELEVASI_APK_DIR", str(STATIC_DIR / "apk")))
 DEFAULT_STATUS_MESSAGE = "Belum ada status yang dikirim hari ini."
@@ -458,6 +532,11 @@ JOURNAL_ENTRIES: list[str] = []
 APK_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 app.mount("/downloads", StaticFiles(directory=APK_DOWNLOAD_DIR), name="apk-downloads")
+
+# 1. SETUP STATIC FILES (Untuk akses gambar)
+UPLOAD_DIR = STATIC_DIR / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 class StickyNoteConnectionManager:
@@ -619,6 +698,61 @@ def init_db() -> None:
                 x_position REAL NOT NULL,
                 y_position REAL NOT NULL,
                 rotation REAL NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                author_name TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                is_pinned INTEGER NOT NULL DEFAULT 0,
+                likes_count INTEGER NOT NULL DEFAULT 0,
+                media_urls TEXT
+            )
+            """
+        )
+        
+        # Add media_url column if it doesn't exist (for existing DBs)
+        existing_post_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(posts)").fetchall()
+        }
+        if "media_url" not in existing_post_columns:
+            connection.execute("ALTER TABLE posts ADD COLUMN media_url TEXT")
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_pins (
+                user_id TEXT NOT NULL,
+                post_id INTEGER NOT NULL,
+                PRIMARY KEY (user_id, post_id),
+                FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS replies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id INTEGER NOT NULL,
+                author_name TEXT NOT NULL,
+                content TEXT NOT NULL,
+                media_urls TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                user_id TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                bio TEXT NOT NULL DEFAULT '',
+                avatar_url TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL
             )
             """
         )
@@ -1737,4 +1871,463 @@ async def create_journal_entry(payload: JournalEntryCreate) -> JournalEntryRespo
     return JournalEntryResponse(
         id=len(JOURNAL_ENTRIES),
         message="Refleksi berhasil disimpan.",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Feed / Kertas Terbang — Endpoints
+# ══════════════════════════════════════════════════════════════════════
+
+
+def build_post_response(row: sqlite3.Row) -> PostResponse:
+    return PostResponse(
+        id=int(row["id"]),
+        author_name=row["author_name"],
+        content=row["content"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+        is_pinned=bool(row["is_pinned"]),
+        likes_count=int(row["likes_count"]),
+    )
+
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Profile / Pengaturan Akun — Endpoints
+# ══════════════════════════════════════════════════════════════════════
+
+AVATAR_DIR = STATIC_DIR / "avatars"
+AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static-files")
+
+
+def get_or_create_profile(user_id: UserId) -> dict:
+    """Ambil profil dari DB, atau buat dari data registrasi."""
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT user_id, display_name, bio, avatar_url, updated_at
+            FROM user_profiles
+            WHERE user_id = ?
+            """,
+            (user_id.value,),
+        ).fetchone()
+
+    if row is not None:
+        user_row = get_registered_user(user_id)
+        return {
+            "display_name": row["display_name"],
+            "bio": row["bio"],
+            "birthday_month": int(user_row["birthday_month"]) if row_has_identity(user_row) else 1,
+            "birthday_day": int(user_row["birthday_day"]) if row_has_identity(user_row) else 1,
+            "avatar_url": row["avatar_url"],
+        }
+
+    # Fallback: buat dari data registrasi
+    user_row = get_registered_user(user_id)
+    if not row_has_identity(user_row):
+        return {
+            "display_name": "Pengguna",
+            "bio": "",
+            "birthday_month": 1,
+            "birthday_day": 1,
+            "avatar_url": "",
+        }
+
+    return {
+        "display_name": user_row["name"],
+        "bio": "",
+        "birthday_month": int(user_row["birthday_month"]),
+        "birthday_day": int(user_row["birthday_day"]),
+        "avatar_url": "",
+    }
+
+
+@app.get(
+    "/api/profile/{user_id}",
+    response_model=ProfileResponse,
+    response_model_by_alias=True,
+)
+async def get_profile(user_id: str) -> ProfileResponse:
+    """Ambil data profil pengguna."""
+    resolved_user_id = resolve_user_id(user_id)
+    ensure_registered(resolved_user_id)
+    profile = get_or_create_profile(resolved_user_id)
+
+    return ProfileResponse(
+        display_name=profile["display_name"],
+        bio=profile["bio"],
+        birthday_month=profile["birthday_month"],
+        birthday_day=profile["birthday_day"],
+        avatar_url=profile["avatar_url"],
+    )
+
+
+@app.put(
+    "/api/profile/{user_id}",
+    response_model=ProfileResponse,
+    response_model_by_alias=True,
+)
+async def update_profile(
+    user_id: str,
+    payload: ProfileUpdatePayload,
+) -> ProfileResponse:
+    """Perbarui profil pengguna."""
+    resolved_user_id = resolve_user_id(user_id)
+    ensure_registered(resolved_user_id)
+
+    birthday_month, birthday_day = validate_birthday(
+        payload.birthday_month, payload.birthday_day
+    )
+    display_name = compact_name(payload.display_name)
+    bio = payload.bio.strip()
+    now = utc_now().isoformat()
+
+    # Update user_profiles table
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO user_profiles (user_id, display_name, bio, avatar_url, updated_at)
+            VALUES (?, ?, ?, '', ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                display_name = excluded.display_name,
+                bio = excluded.bio,
+                updated_at = excluded.updated_at
+            """,
+            (resolved_user_id.value, display_name, bio, now),
+        )
+
+    # Juga update nama dan tanggal lahir di tabel users utama
+    normalized = normalize_name(display_name)
+    upsert_user(
+        user_id=resolved_user_id,
+        name=display_name,
+        normalized_name=normalized,
+        birthday_month=birthday_month,
+        birthday_day=birthday_day,
+    )
+
+    # Ambil avatar_url terkini
+    profile = get_or_create_profile(resolved_user_id)
+
+    return ProfileResponse(
+        display_name=display_name,
+        bio=bio,
+        birthday_month=birthday_month,
+        birthday_day=birthday_day,
+        avatar_url=profile["avatar_url"],
+    )
+
+
+@app.post(
+    "/api/profile/avatar",
+    response_model=AvatarUploadResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_avatar(
+    user_id: str = Query(alias="user_id"),
+    file: UploadFile = None,
+) -> AvatarUploadResponse:
+    """Upload avatar ke folder lokal dan simpan URL-nya."""
+    from fastapi import File as FastAPIFile
+
+    resolved_user_id = resolve_user_id(user_id)
+    ensure_registered(resolved_user_id)
+
+    if not file:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File gambar kosong.",
+        )
+
+    # Simpan file ke static/avatars/
+    filename = f"{resolved_user_id.value}_avatar.png"
+    file_path = AVATAR_DIR / filename
+
+    body = await file.read()
+    file_path.write_bytes(body)
+
+    avatar_url = f"/static/avatars/{filename}"
+
+    # Simpan URL ke user_profiles
+    now = utc_now().isoformat()
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO user_profiles (user_id, display_name, bio, avatar_url, updated_at)
+            VALUES (?, ?, '', ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                avatar_url = excluded.avatar_url,
+                updated_at = excluded.updated_at
+            """,
+            (
+                resolved_user_id.value,
+                display_name_for(resolved_user_id),
+                avatar_url,
+                now,
+            ),
+        )
+
+    return AvatarUploadResponse(avatar_url=avatar_url)
+
+# ── Feed / Kertas Terbang ────────────────────────────────────────────
+
+class FeedPostDto(BaseModel):
+    id: int
+    author_name: str
+    content: str
+    created_at: str
+    is_pinned: bool
+    likes_count: int
+    media_urls: list[str] = []
+    replies_count: int = 0
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+class ReplyDto(BaseModel):
+    id: int
+    post_id: int
+    author_name: str
+    content: str
+    media_urls: list[str] = []
+    created_at: str
+
+@app.get("/api/feed", response_model=list[FeedPostDto])
+async def get_feed(limit: int = 50, user_id: str = Query(default="")):
+    with get_connection() as connection:
+        if user_id:
+            rows = connection.execute(
+                """
+                SELECT p.id, p.author_name, p.content, p.created_at,
+                       CASE WHEN up.post_id IS NOT NULL THEN 1 ELSE 0 END AS is_pinned,
+                       p.likes_count, p.media_urls,
+                       (SELECT COUNT(*) FROM replies r WHERE r.post_id = p.id) AS replies_count
+                FROM posts p
+                LEFT JOIN user_pins up ON p.id = up.post_id AND up.user_id = ?
+                ORDER BY is_pinned DESC, p.created_at DESC
+                LIMIT ?
+                """,
+                (user_id, limit)
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                """
+                SELECT id, author_name, content, created_at, 0 AS is_pinned,
+                       likes_count, media_urls,
+                       (SELECT COUNT(*) FROM replies r WHERE r.post_id = posts.id) AS replies_count
+                FROM posts
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (limit,)
+            ).fetchall()
+        
+    import json
+    return [
+        FeedPostDto(
+            id=row["id"],
+            author_name=row["author_name"],
+            content=row["content"],
+            created_at=row["created_at"],
+            is_pinned=bool(row["is_pinned"]),
+            likes_count=row["likes_count"],
+            media_urls=json.loads(row["media_urls"]) if row["media_urls"] else [],
+            replies_count=row["replies_count"]
+        )
+        for row in rows
+    ]
+
+@app.post("/api/posts", response_model=FeedPostDto)
+async def create_post(
+    request: Request,
+    content: str = Form(...),
+    author_name: str = Form(...),
+    files: Optional[list[UploadFile]] = File(None)
+):
+    from fastapi.staticfiles import StaticFiles
+    import os
+    import uuid
+    import json
+
+    upload_dir = STATIC_DIR / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    media_urls = []
+    if files is not None:
+        for file in files:
+            if file.filename:
+                ext = os.path.splitext(file.filename)[1]
+                unique_filename = f"{uuid.uuid4()}{ext}"
+                file_path = upload_dir / unique_filename
+                
+                body = await file.read()
+                file_path.write_bytes(body)
+                
+                base_url = str(request.base_url).rstrip("/")
+                media_urls.append(f"{base_url}/static/uploads/{unique_filename}")
+        
+    now = utc_now().isoformat()
+    media_urls_json = json.dumps(media_urls) if media_urls else None
+    
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO posts (author_name, content, created_at, is_pinned, likes_count, media_urls)
+            VALUES (?, ?, ?, 0, 0, ?)
+            """,
+            (author_name, content, now, media_urls_json)
+        )
+        post_id = cursor.lastrowid
+        connection.commit()
+        
+    return FeedPostDto(
+        id=post_id,
+        author_name=author_name,
+        content=content,
+        created_at=now,
+        is_pinned=False,
+        likes_count=0,
+        media_urls=media_urls
+    )
+
+@app.put("/api/posts/{post_id}/like")
+async def like_post(post_id: int):
+    with get_connection() as connection:
+        connection.execute("UPDATE posts SET likes_count = likes_count + 1 WHERE id = ?", (post_id,))
+        row = connection.execute("SELECT id, likes_count FROM posts WHERE id = ?", (post_id,)).fetchone()
+        connection.commit()
+        
+    if not row:
+        raise HTTPException(status_code=404, detail="Post not found")
+        
+    return {"id": row["id"], "likes_count": row["likes_count"]}
+
+@app.put("/api/posts/{post_id}/pin")
+async def pin_post(post_id: int, user_id: str = Query(...)):
+    with get_connection() as connection:
+        # Check if post exists
+        post_row = connection.execute("SELECT id FROM posts WHERE id = ?", (post_id,)).fetchone()
+        if not post_row:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # Check if user already pinned THIS post (toggle off)
+        existing = connection.execute(
+            "SELECT post_id FROM user_pins WHERE user_id = ? AND post_id = ?",
+            (user_id, post_id)
+        ).fetchone()
+
+        if existing:
+            # Unpin
+            connection.execute(
+                "DELETE FROM user_pins WHERE user_id = ? AND post_id = ?",
+                (user_id, post_id)
+            )
+            connection.commit()
+            return {"id": post_id, "is_pinned": False}
+
+        # Check if user already has a different pin (limit 1)
+        other_pin = connection.execute(
+            "SELECT post_id FROM user_pins WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+
+        if other_pin:
+            raise HTTPException(
+                status_code=409,
+                detail="Kamu sudah menyematkan postingan lain. Lepas sematan terlebih dahulu sebelum menyematkan yang baru."
+            )
+
+        # Pin this post
+        connection.execute(
+            "INSERT INTO user_pins (user_id, post_id) VALUES (?, ?)",
+            (user_id, post_id)
+        )
+        connection.commit()
+        return {"id": post_id, "is_pinned": True}
+
+# ── Replies / Balasan ────────────────────────────────────────────────
+
+@app.get("/api/posts/{post_id}/replies", response_model=list[ReplyDto])
+async def get_replies(post_id: int):
+    with get_connection() as connection:
+        post = connection.execute("SELECT id FROM posts WHERE id = ?", (post_id,)).fetchone()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+        rows = connection.execute(
+            """
+            SELECT id, post_id, author_name, content, media_urls, created_at
+            FROM replies
+            WHERE post_id = ?
+            ORDER BY created_at ASC
+            """,
+            (post_id,)
+        ).fetchall()
+    
+    import json
+    return [
+        ReplyDto(
+            id=row["id"],
+            post_id=row["post_id"],
+            author_name=row["author_name"],
+            content=row["content"],
+            media_urls=json.loads(row["media_urls"]) if row["media_urls"] else [],
+            created_at=row["created_at"]
+        )
+        for row in rows
+    ]
+
+@app.post("/api/posts/{post_id}/replies", response_model=ReplyDto)
+async def create_reply(
+    post_id: int,
+    request: Request,
+    content: str = Form(...),
+    author_name: str = Form(...),
+    files: Optional[list[UploadFile]] = File(None)
+):
+    import os
+    import uuid
+    import json
+
+    with get_connection() as connection:
+        post = connection.execute("SELECT id FROM posts WHERE id = ?", (post_id,)).fetchone()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+    media_urls = []
+    if files is not None:
+        upload_dir = STATIC_DIR / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        for file in files:
+            if file.filename:
+                ext = os.path.splitext(file.filename)[1]
+                unique_filename = f"{uuid.uuid4()}{ext}"
+                file_path = upload_dir / unique_filename
+                body = await file.read()
+                file_path.write_bytes(body)
+                base_url = str(request.base_url).rstrip("/")
+                media_urls.append(f"{base_url}/static/uploads/{unique_filename}")
+
+    now = utc_now().isoformat()
+    media_urls_json = json.dumps(media_urls) if media_urls else None
+
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO replies (post_id, author_name, content, media_urls, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (post_id, author_name, content, media_urls_json, now)
+        )
+        reply_id = cursor.lastrowid
+        connection.commit()
+
+    return ReplyDto(
+        id=reply_id,
+        post_id=post_id,
+        author_name=author_name,
+        content=content,
+        media_urls=media_urls,
+        created_at=now
     )
