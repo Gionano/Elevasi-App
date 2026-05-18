@@ -44,7 +44,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.elevasi.core.navigation.ElevasiDestination
 import com.example.elevasi.core.navigation.ElevasiNavHost
-import com.example.elevasi.core.navigation.ElevasiRoutes
 import com.example.elevasi.core.notifications.BirthdayAlarmScheduler
 import com.example.elevasi.data.model.AppUpdateInfoDto
 import com.example.elevasi.data.model.UserSessionDto
@@ -53,8 +52,9 @@ import com.example.elevasi.ui.components.ElevasiTopBar
 import com.example.elevasi.ui.theme.ElevasiBackground
 import com.example.elevasi.ui.theme.ElevasiPrimary
 import com.example.elevasi.ui.theme.ElevasiTheme
+import com.example.elevasi.data.AvatarCache
+import com.example.elevasi.data.remote.RetrofitClient
 
-// ── Root entry point ──────────────────────────────────────────────
 @Composable
 fun ElevasiApp() {
     val context = LocalContext.current
@@ -116,7 +116,6 @@ fun ElevasiApp() {
     )
 }
 
-// ── Main authenticated shell ──────────────────────────────────────
 @Composable
 private fun AuthenticatedElevasiApp(
     session: UserSessionDto,
@@ -131,7 +130,6 @@ private fun AuthenticatedElevasiApp(
     val birthdayState by birthdayModeViewModel.uiState.collectAsStateWithLifecycle()
     val isBirthdayMode = birthdayState.isMyBirthday
     val navController = rememberNavController()
-    val destinations = ElevasiDestination.topLevel
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -140,22 +138,34 @@ private fun AuthenticatedElevasiApp(
     }
 
     ElevasiTheme(isBirthdayMode = isBirthdayMode) {
+        // Fetch profiles to populate shared avatar cache
+        LaunchedEffect(session.userId) {
+            try {
+                val myProfile = RetrofitClient.apiService.getMyProfile(session.userId)
+                AvatarCache.set(myProfile.displayName, myProfile.avatarUrl)
+            } catch (_: Exception) { /* ignore */ }
+            try {
+                val partnerProfile = RetrofitClient.apiService.getMyProfile(session.partnerId)
+                AvatarCache.set(partnerProfile.displayName, partnerProfile.avatarUrl)
+            } catch (_: Exception) { /* ignore */ }
+        }
+
+        val avatarMap by AvatarCache.avatars.collectAsStateWithLifecycle()
+        val myAvatarUrl = AvatarCache.getFullUrl(session.name)
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background decoration layer
             if (isBirthdayMode) {
                 BirthdayModeBackdrop()
-            } else {
-                DefaultModeBackdrop()
             }
 
             Scaffold(
-                containerColor = Color.Transparent,
+                containerColor = ElevasiBackground,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     ElevasiTopBar(
                         userName = session.name,
+                        avatarUrl = myAvatarUrl,
                         onProfileClick = {
-                            navController.navigate(ElevasiRoutes.PENGATURAN_AKUN) {
+                            navController.navigate(ElevasiDestination.PengaturanAkun.route) {
                                 launchSingleTop = true
                             }
                         }
@@ -163,9 +173,8 @@ private fun AuthenticatedElevasiApp(
                 },
                 bottomBar = {
                     ElevasiBottomBar(
-                        destinations = destinations,
                         currentRoute = currentRoute,
-                        onDestinationClick = { destination ->
+                        onTabSelected = { destination ->
                             navController.navigate(destination.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
@@ -177,7 +186,7 @@ private fun AuthenticatedElevasiApp(
                     )
                 },
                 floatingActionButton = {
-                    // FAB only visible on Beranda tab
+                    // FAB hanya muncul di tab Beranda
                     AnimatedVisibility(
                         visible = currentRoute == ElevasiDestination.Beranda.route,
                         enter = scaleIn(initialScale = 0.6f) + fadeIn(),
@@ -185,7 +194,7 @@ private fun AuthenticatedElevasiApp(
                     ) {
                         FloatingActionButton(
                             onClick = {
-                                navController.navigate(ElevasiRoutes.TULIS_POSTINGAN) {
+                                navController.navigate(ElevasiDestination.TulisPostingan.route) {
                                     launchSingleTop = true
                                 }
                             },
@@ -195,7 +204,7 @@ private fun AuthenticatedElevasiApp(
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
-                                contentDescription = "Tulis Postingan"
+                                contentDescription = "Tulis Kertas Terbang"
                             )
                         }
                     }
@@ -220,7 +229,6 @@ private fun AuthenticatedElevasiApp(
     }
 }
 
-// ── In-app update dialog ──────────────────────────────────────────
 @Composable
 private fun InAppUpdateDialog(
     updateInfo: AppUpdateInfoDto?,
