@@ -1,69 +1,97 @@
 # Elevasi
 
-Elevasi adalah aplikasi Android untuk refleksi diri, disiplin emosional, dan koneksi dua arah antar pasangan. Project ini terdiri dari aplikasi Android Native berbasis Kotlin + Jetpack Compose dan backend FastAPI yang bisa dijalankan lokal maupun lewat Docker.
+> Aplikasi Android untuk transformasi diri, disiplin emosional, dan pelacakan kebiasaan bersama antara dua pasangan.
 
-## Stack
+Elevasi adalah platform tertutup yang hanya bisa diakses oleh dua pengguna. Terdiri dari aplikasi **Android Native (Kotlin + Jetpack Compose)** dan backend **Python FastAPI**. Setiap sesi terikat pada pasangan yang sudah dikonfigurasi di server.
 
-- Android Native: Kotlin, Jetpack Compose, MVVM, StateFlow, Retrofit, WorkManager, AlarmManager
-- Backend: Python, FastAPI, SQLite
-- Animasi: Lottie Compose
-- Deployment backend: Docker
+---
+
+## Tech Stack
+
+| Layer | Teknologi |
+|-------|-----------|
+| Android | Kotlin, Jetpack Compose, MVVM, StateFlow, Retrofit, Coil |
+| Backend | Python 3, FastAPI, SQLite, WebSocket |
+| Animasi | Lottie Compose (JSON dibuat secara prosedural) |
+| Infrastruktur | Docker, Docker Compose |
+| Penjadwalan | AlarmManager, WorkManager |
+
+---
 
 ## Fitur Utama
 
-- Onboarding nama dan tanggal ulang tahun saat pertama kali membuka aplikasi
-- Shared Presence dua arah untuk update status dan melihat status pasangan
-- Reaction emoji ringan antar pasangan
-- Ruang Dialog Terkunci untuk refleksi mingguan dua arah
-- Gerbang Langit / Daily Verse dengan koleksi verse harian yang berotasi
-- Interactive Mading / Sticky Notes dengan drag-and-drop realtime via WebSocket
-- Midnight Surprise Mode untuk takeover tema ulang tahun
-- Notifikasi lokal terjadwal dengan `NotificationChannel` dan `AlarmManager`
-- Self-hosted in-app update untuk cek versi APK terbaru dari server sendiri
-- Co-op Virtual Plant dengan level, EXP, dan status layu
+- **Onboarding** — Pendaftaran nama dan tanggal ulang tahun saat pertama buka aplikasi; menghasilkan public user ID yang stabil
+- **Shared Presence** — Update status dua arah secara real-time dengan reaksi emoji antar pasangan
+- **Ruang Dialog Terkunci** — Pertanyaan refleksi mingguan yang menyembunyikan jawaban pasangan sampai keduanya sudah mengisi
+- **Gerbang Langit / Verse Harian** — Koleksi verse harian yang berotasi berdasarkan tanggal lokal device, refresh saat resume
+- **Mading Interaktif** — Sticky note dengan drag-and-drop dan sinkronisasi real-time via WebSocket
+- **Tanaman Virtual Bersama** — Tanaman animasi Lottie 4 level yang dibagikan berdua; naik level lewat EXP, layu jika tidak dirawat 3 hari
+- **Kertas Terbang / Feed** — Posting refleksi pendek dengan lampiran gambar, likes, pin, dan balasan berulir
+- **Pengaturan Akun** — Upload foto profil, edit nama tampilan, bio, dan tanggal lahir
+- **Birthday Surprise Mode** — Tema aplikasi berubah total di hari ulang tahun pasangan, dijadwalkan dengan AlarmManager
+- **Self-Hosted In-App Update** — Cek versi APK terbaru dari backend sendiri dan tampilkan dialog unduh
+
+---
 
 ## Struktur Project
 
 ```text
 Elevasi/
-|- app/                     # Android app
-|  |- src/main/java/com/example/elevasi/
-|  |  |- app/              # Entry app, onboarding, app-level state
-|  |  |- core/             # Navigation, notifications, util
-|  |  |- data/             # Model API, repository, Retrofit
-|  |  |- feature/          # Dashboard, verse, journal, plant, mading
-|  |  |- ui/               # Theme dan reusable UI components
-|  |- src/main/res/        # Resource Android, icon, lottie, xml
-|- backend/
-|  |- app/main.py          # FastAPI app utama
-|  |- requirements.txt     # Dependency Python
-|  |- Dockerfile           # Image backend
-|- docker-compose.yml      # Compose untuk deploy backend
-|- README.md
+├── app/
+│   └── src/main/java/com/example/elevasi/
+│       ├── app/            # Entry app, onboarding, state level app, in-app update
+│       ├── core/           # Destinasi navigasi, scheduler AlarmManager
+│       ├── data/           # Model API, Retrofit client, AvatarCache
+│       ├── feature/
+│       │   ├── beranda/    # Feed, ComposePost, Reply, BirthdaySurprise
+│       │   ├── journal/    # Ruang Dialog Terkunci / Refleksi
+│       │   ├── mading/     # Mading Interaktif (WebSocket)
+│       │   ├── plant/      # Tanaman Virtual + animasi Lottie
+│       │   ├── settings/   # Pengaturan Akun, ProfileViewModel
+│       │   └── verse/      # Verse Harian / Gerbang Langit
+│       └── ui/             # Tema, token warna, komponen bersama (TopBar, BottomBar)
+├── app/src/main/res/
+│   └── raw/                # File animasi Lottie (plant_seed, sprout, young, bloom)
+├── backend/
+│   ├── app/main.py         # Aplikasi FastAPI (semua endpoint)
+│   ├── requirements.txt
+│   └── Dockerfile
+├── docker-compose.yml
+├── gen_bloom.py            # Script untuk membuat plant_bloom.json secara prosedural
+└── README.md
 ```
+
+---
 
 ## Konfigurasi Android
 
-- Package: `com.example.elevasi`
-- Minimum SDK: `26`
-- Target SDK: `36`
-- Java/Kotlin toolchain: `17`
-- Versi app saat ini:
-  - `versionCode = 1`
-  - `versionName = "1.0"`
+| Setting | Nilai |
+|---------|-------|
+| Package | `com.example.elevasi` |
+| Min SDK | 26 (Android 8.0) |
+| Target SDK | 36 |
+| Toolchain | Java / Kotlin 17 |
+| Versi | `1.0` (versionCode 1) |
 
-Base URL Android saat ini:
+### Mengatur API Base URL
+
+Di `app/build.gradle.kts`, atur URL backend:
 
 ```kotlin
-BuildConfig.API_BASE_URL = "http://10.0.2.2:PORT/"
+buildConfigField("String", "API_BASE_URL", "\"https://(your_api_url_here)/\"")
 ```
 
-Jika ingin pindah ke server lokal atau Docker di laptop:
+| Environment | URL |
+|-------------|-----|
+| Emulator → mesin lokal | `http://10.0.2.2:PORT/` |
+| HP fisik → mesin lokal | `http://<IP-LAN-PC>:PORT/` |
+| Produksi (Docker / cloud) | `https://domain-kamu.com/` |
 
-- Emulator Android: gunakan `http://10.0.2.2:PORT/`
-- HP fisik: gunakan `http://IP-LAN-PC:PORT/`
+---
 
-## Menjalankan Backend Secara Lokal
+## Menjalankan Backend
+
+### Lokal (tanpa Docker)
 
 ```powershell
 cd backend
@@ -74,227 +102,165 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Health check:
-
 ```powershell
 curl http://localhost:8000/health
 ```
 
-## Menjalankan Backend Dengan Docker
-
-Build image:
+### Dengan Docker
 
 ```powershell
 cd backend
 docker build -t elevasi-api .
-```
-
-Jalankan container di port default:
-
-```powershell
 docker run --rm -p 8000:8000 elevasi-api
 ```
 
-Jika ingin pakai port lain, misalnya `18000`:
-
-```powershell
-docker run --rm -p 18000:8000 elevasi-api
-```
-
-Catatan:
-
-- Port internal container tetap `8000`
-- Jika host port diganti, `API_BASE_URL` di Android juga harus ikut diganti
-
-## Menjalankan Backend Dengan Docker Compose
-
-File `docker-compose.yml` sudah disiapkan untuk deployment yang lebih stabil di server.
-
-Jalankan:
+### Dengan Docker Compose (direkomendasikan untuk server)
 
 ```powershell
 docker compose up -d --build
 ```
 
-Yang dilakukan compose ini:
+Yang dilakukan:
+- Build image dari `./backend`
+- Expose API ke host port `18000` (bisa diubah)
+- Simpan database SQLite ke `./docker-data/elevasi.db`
+- Simpan upload avatar dan file APK ke `./docker-data/`
+- Restart otomatis dengan `unless-stopped`
 
-- build image dari `./backend`
-- expose backend ke host port default `18000`
-- menyimpan database SQLite ke `./docker-data/elevasi.db`
-- menyimpan file APK self-hosted update ke `./docker-data/apk`
-- restart otomatis dengan `unless-stopped`
-
-Jika ingin ganti port atau timezone, buat file `.env` di root project:
+**Opsional** — buat file `.env` di root project untuk override konfigurasi:
 
 ```env
 ELEVASI_PORT=18000
-ELEVASI_TZ=Asia/Bangkok
+ELEVASI_TZ=Asia/Jakarta
 ```
 
-Update backend setelah ada perubahan `main.py`:
-
+Update backend setelah ada perubahan:
 ```powershell
 docker compose up -d --build
 ```
 
-Kalau sebelumnya backend masih jalan dari `docker run` manual, pindah ke compose sekali saja:
-
-```powershell
-docker stop elevasi-api
-docker rm elevasi-api
-docker compose up -d --build
-```
+---
 
 ## Menjalankan Android App
 
-Buka project root `Elevasi` di Android Studio, tunggu Gradle sync selesai, lalu jalankan ke emulator atau HP fisik.
-
-Build APK debug lewat terminal:
+Buka root project di **Android Studio**, tunggu Gradle sync selesai, lalu jalankan ke emulator atau HP fisik.
 
 ```powershell
+# Build APK debug
 .\gradlew.bat assembleDebug
-```
 
-Lokasi APK debug:
-
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-Install langsung ke device yang terhubung:
-
-```powershell
+# Install langsung ke device yang terhubung
 .\gradlew.bat installDebug
 ```
 
-## Endpoint Backend Utama
+Lokasi APK: `app/build/outputs/apk/debug/app-debug.apk`
 
-### User
+---
 
-- `POST /users/register`
-- `GET /users/{user_id}`
+## Referensi API
 
-### Shared Presence
+### Pengguna
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `POST` | `/users/register` | Daftar nama dan tanggal lahir |
+| `GET` | `/users/{user_id}` | Ambil data sesi pengguna |
 
-- `POST /status/{user_id}`
-- `GET /status/{partner_id}`
+### Presence & Reaksi
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `POST` | `/status/{user_id}` | Update status presence |
+| `GET` | `/status/{partner_id}` | Ambil status pasangan |
+| `POST` | `/reaction/{target_user_id}` | Kirim reaksi emoji |
+| `GET` | `/reaction/{my_user_id}` | Ambil reaksi yang diterima |
 
-### Reaction
+### Profil
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/api/profile/{user_id}` | Ambil profil (nama, bio, avatar) |
+| `PUT` | `/api/profile/{user_id}` | Update field profil |
+| `POST` | `/api/profile/avatar?user_id=` | Upload foto profil (multipart/form-data) |
 
-- `POST /reaction/{target_user_id}`
-- `GET /reaction/{my_user_id}`
+### Feed (Kertas Terbang)
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/api/feed` | Ambil semua post (mendukung `user_id` untuk status pin) |
+| `POST` | `/api/feed` | Buat post baru (multipart, mendukung gambar) |
+| `POST` | `/api/feed/{post_id}/like` | Like sebuah post |
+| `POST` | `/api/feed/{post_id}/pin` | Pin/unpin sebuah post |
+| `GET` | `/api/feed/{post_id}/replies` | Ambil balasan sebuah post |
+| `POST` | `/api/feed/{post_id}/replies` | Kirim balasan (multipart) |
 
-### Reflection
+### Refleksi (Dialog Terkunci)
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/reflection/current?user_id=` | Ambil pertanyaan minggu ini |
+| `GET` | `/reflection/{question_id}?user_id=` | Ambil pertanyaan beserta jawaban |
+| `POST` | `/reflection/submit` | Kirim jawaban refleksi |
 
-- `GET /reflection/current?user_id=...`
-- `GET /reflection/{question_id}?user_id=...`
-- `POST /reflection/submit`
+### Tanaman Virtual
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/plant/status` | Ambil level, EXP, dan status layu |
+| `POST` | `/plant/add-exp` | Tambah EXP (body: `{"amount": N}`) |
 
-### Birthday Mode
+### Mading Interaktif
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/mading/notes` | Muat semua sticky note |
+| `POST` | `/mading/notes` | Buat sticky note baru |
+| `WS` | `/ws/mading` | Pergerakan & penghapusan note secara real-time |
 
-- `GET /is-my-birthday/{my_user_id}`
+### Verse Harian
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/api/v1/verse/today` | Ambil verse hari ini (kirim `tz_offset_minutes`) |
 
-### Virtual Plant
+### Jurnal
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `POST` | `/api/v1/journal` | Simpan entri jurnal |
 
-- `GET /plant/status`
-- `POST /plant/add-exp`
+### Ulang Tahun & Update
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| `GET` | `/is-my-birthday/{user_id}` | Cek apakah hari ini ulang tahun pengguna |
+| `GET` | `/check-update` | Cek versi APK terbaru |
+| `GET` | `/downloads/elevasi-latest.apk` | Unduh APK terbaru |
 
-### Interactive Mading
+---
 
-- `GET /mading/notes`
-- `POST /mading/notes`
-- `WS /ws/mading`
+## Tanaman Virtual
 
-### Daily Verse
+Tanaman adalah status bersama antara dua pasangan:
 
-- `GET /api/v1/verse/today`
+- **4 level**: Benih → Kecambah → Tanaman Muda → Mekar
+- **100 EXP per level**, maksimum level 4
+- **Layu** jika tidak ada interaksi selama 3+ hari
+- Dianimasikan dengan **Lottie** — `gen_bloom.py` membuat animasi level 4 secara prosedural
 
-### Journal
-
-- `POST /api/v1/journal`
-
-### App Update
-
-- `GET /check-update`
-- Static APK download: `/downloads/elevasi-latest.apk`
+---
 
 ## Self-Hosted Update
 
-Backend me-mount folder statis untuk file APK dan mengembalikan metadata update lewat `GET /check-update`.
+Untuk merilis versi baru:
+1. Naikkan `versionCode` dan `versionName` di `app/build.gradle.kts`
+2. Build release APK dan taruh di `backend/app/static/apk/elevasi-latest.apk` (atau `docker-data/apk/` jika pakai Compose)
+3. Update metadata versi yang dikembalikan oleh `GET /check-update`
 
-Folder APK default saat jalan lokal biasa:
+App akan menampilkan dialog update otomatis saat dibuka kembali.
 
-```text
-backend/app/static/apk/
-```
-
-Folder APK saat jalan lewat compose:
-
-```text
-docker-data/apk/
-```
-
-Agar update dialog muncul di app:
-
-1. Naikkan metadata versi terbaru di backend
-2. Taruh file APK terbaru dengan nama `elevasi-latest.apk`
-3. Pastikan `download_url` mengarah ke host yang bisa diakses device
-
-## Virtual Plant
-
-Tanaman virtual memakai satu status bersama di backend:
-
-- `level`
-- `current_exp`
-- `last_interaction`
-
-Mekanik dasar:
-
-- Naik level setiap `100 EXP`
-- Maksimum level `4`
-- Status layu aktif jika tidak ada interaksi selama `3 hari`
-
-## Interactive Mading
-
-Fitur mading memakai kombinasi REST + WebSocket:
-
-- `GET /mading/notes` untuk memuat semua sticky note saat screen dibuka
-- `POST /mading/notes` untuk menambah sticky note baru
-- `WS /ws/mading` untuk broadcast pergerakan sticky note secara realtime
-
-Struktur data note saat ini:
-
-- `id`
-- `text`
-- `color`
-- `x_position`
-- `y_position`
-- `rotation`
-
-Di Android, drag note di-update langsung di UI lokal, lalu posisi terbaru dikirim secara throttled lewat WebSocket agar tetap ringan saat digeser terus-menerus.
-
-## Daily Verse
-
-Verse harian sekarang dipilih berdasarkan tanggal client:
-
-- Android mengirim `tz_offset_minutes` ke backend
-- backend memilih verse berdasarkan tanggal lokal device, bukan hanya tanggal server
-- screen verse akan refresh lagi saat `resume` jika hari sudah berganti
+---
 
 ## Catatan Pengembangan
 
-- Backend memakai SQLite lokal di `backend/app/elevasi.db` saat jalan biasa
-- Jika jalan lewat compose, database dipindahkan ke `docker-data/elevasi.db`
-- File database lokal sudah diabaikan oleh `.gitignore`
-- Jika backend berubah dan dijalankan lewat Docker, image perlu dibuild ulang
-- `docker compose up -d --build` adalah alur update backend yang direkomendasikan di server
-- Untuk Android versi baru, koneksi HTTP lokal memerlukan konfigurasi cleartext yang sudah disiapkan di manifest dan network security config
+- Database SQLite ada di `backend/app/elevasi.db` saat lokal, atau `docker-data/elevasi.db` saat pakai Compose
+- File database sudah ada di `.gitignore`
+- Upload foto profil disimpan di `backend/app/static/avatars/` dan diakses lewat `/static/avatars/<nama_file>`
+- `AvatarCache` adalah singleton in-memory yang menyebarkan URL avatar ke semua screen (TopBar, Feed, Reply, Settings) tanpa perlu fetch ulang
+- Cleartext HTTP diizinkan untuk development lokal lewat `network_security_config.xml`; gunakan HTTPS di produksi
 
-## Rekomendasi Penggunaan
-
-- Gunakan URL HTTPS publik untuk penggunaan harian
-- Gunakan Docker untuk deployment backend di server lokal
-- Gunakan emulator dengan `10.0.2.2` hanya untuk testing lokal
+---
 
 ## Lisensi
 
-Project ini masih bersifat internal / private.
+Project ini bersifat privat — hanya untuk penggunaan internal.
