@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,14 +26,22 @@ import androidx.compose.ui.unit.sp
 import com.example.elevasi.core.navigation.ElevasiDestination
 import com.example.elevasi.ui.theme.ElevasiBackground
 import com.example.elevasi.ui.theme.ElevasiPrimary
+import com.example.elevasi.ui.theme.ElevasiPrimaryContainer
 import com.example.elevasi.ui.theme.ElevasiTextPrimary
 import com.example.elevasi.ui.theme.ElevasiTextSecondary
+import coil.compose.AsyncImage
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.layout.ContentScale
 
-// ── Top App Bar ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+// ElevasiTopBar
+// ─────────────────────────────────────────────────────────────────────
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ElevasiTopBar(
     userName: String,
+    avatarUrl: String? = null,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -40,10 +49,12 @@ fun ElevasiTopBar(
         modifier = modifier,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = ElevasiBackground,
-            scrolledContainerColor = ElevasiBackground
+            scrolledContainerColor = ElevasiBackground,
+            titleContentColor = ElevasiTextPrimary,
+            navigationIconContentColor = ElevasiTextPrimary
         ),
         navigationIcon = {
-            // Circular avatar placeholder with first letter of name
+            // Foto profil melingkar — avatar atau inisial nama
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -52,12 +63,21 @@ fun ElevasiTopBar(
                     .clickable(onClick = onProfileClick),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = userName.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = ElevasiPrimary
-                )
+                if (!avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Profile",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = userName.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = ElevasiPrimary
+                    )
+                }
             }
         },
         title = {
@@ -72,12 +92,14 @@ fun ElevasiTopBar(
     )
 }
 
-// ── Bottom Navigation Bar ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+// ElevasiBottomBar
+// ─────────────────────────────────────────────────────────────────────
+
 @Composable
 fun ElevasiBottomBar(
-    destinations: List<ElevasiDestination>,
     currentRoute: String?,
-    onDestinationClick: (ElevasiDestination) -> Unit,
+    onTabSelected: (ElevasiDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
@@ -85,24 +107,23 @@ fun ElevasiBottomBar(
         containerColor = ElevasiBackground,
         tonalElevation = 0.dp
     ) {
-        destinations.forEach { destination ->
+        ElevasiDestination.topLevel.forEach { destination ->
             val isSelected = currentRoute == destination.route
 
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { onDestinationClick(destination) },
+                onClick = { onTabSelected(destination) },
                 alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = ElevasiPrimary,
                     selectedTextColor = ElevasiPrimary,
-                    indicatorColor = ElevasiPrimary.copy(alpha = 0.12f),
+                    indicatorColor = ElevasiPrimaryContainer,
                     unselectedIconColor = ElevasiTextSecondary,
                     unselectedTextColor = ElevasiTextSecondary
                 ),
                 icon = {
                     Icon(
-                        imageVector = if (isSelected) destination.iconFilled
-                                      else destination.iconOutlined,
+                        imageVector = destination.icon,
                         contentDescription = destination.label
                     )
                 },
