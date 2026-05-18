@@ -101,11 +101,7 @@ fun VirtualPlantScreen() {
             )
         }
 
-        item {
-            PlantEvolutionRail(
-                currentLevel = plant?.level ?: 1
-            )
-        }
+
 
         item {
             PlantExpCard(
@@ -388,93 +384,6 @@ private fun PlantExpCard(
     }
 }
 
-@Composable
-private fun PlantEvolutionRail(
-    currentLevel: Int
-) {
-    val stages = listOf(
-        plantStageSpec(1),
-        plantStageSpec(2),
-        plantStageSpec(3),
-        plantStageSpec(4)
-    )
-
-    ElevasiGlassPanel(
-        accentColors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-            MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = "Jejak Evolusi",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            stages.forEachIndexed { index, stage ->
-                val level = index + 1
-                val isActive = currentLevel == level
-                val isReached = currentLevel >= level
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        modifier = Modifier.size(if (isActive) 18.dp else 14.dp),
-                        shape = CircleShape,
-                        color = if (isReached) {
-                            stage.glowColor
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant
-                        }
-                    ) {}
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = stage.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = if (isActive) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                        Text(
-                            text = stage.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = if (isActive) {
-                            stage.glowColor.copy(alpha = 0.18f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                        }
-                    ) {
-                        Text(
-                            text = if (isReached) "Aktif" else "Terkunci",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isActive) stage.glowColor else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun PlantMetric(
