@@ -1768,6 +1768,39 @@ async def upload_avatar(
 
     return AvatarUploadResponse(avatar_url=avatar_url)
 
+
+@app.delete(
+    "/api/profile/avatar",
+    response_model=AvatarUploadResponse,
+    response_model_by_alias=True,
+)
+async def delete_avatar(
+    user_id: str = Query(alias="user_id"),
+) -> AvatarUploadResponse:
+    """Hapus avatar pengguna dan kembalikan ke default."""
+    resolved_user_id = resolve_user_id(user_id)
+    ensure_registered(resolved_user_id)
+
+    # Hapus file fisik jika ada
+    filename = f"{resolved_user_id.value}_avatar.png"
+    file_path = AVATAR_DIR / filename
+    if file_path.exists():
+        file_path.unlink()
+
+    # Set avatar_url = '' di database
+    now = utc_now().isoformat()
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE user_profiles
+            SET avatar_url = '', updated_at = ?
+            WHERE user_id = ?
+            """,
+            (now, resolved_user_id.value),
+        )
+
+    return AvatarUploadResponse(avatar_url="")
+
 # ── Feed / Kertas Terbang ────────────────────────────────────────────
 
 class FeedPostDto(BaseModel):
