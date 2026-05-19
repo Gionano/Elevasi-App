@@ -22,6 +22,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 data class ProfileUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
+    val isUploading: Boolean = false,
     val displayName: String = "",
     val bio: String = "",
     val birthdayMonth: Int = 1,
@@ -132,7 +133,7 @@ class ProfileViewModel(
 
     fun uploadAvatar(context: Context, uri: Uri) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isUploading = true, errorMessage = null) }
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val bytes = inputStream?.readBytes() ?: throw Exception("Cannot read image")
@@ -142,15 +143,33 @@ class ProfileViewModel(
                 val body = MultipartBody.Part.createFormData("file", "avatar.jpg", reqFile)
                 
                 val response = api.uploadAvatar(session.userId, body)
-                _uiState.update { it.copy(isLoading = false, avatarUrl = response.avatarUrl, saveSuccess = true) }
+                _uiState.update { it.copy(isUploading = false, avatarUrl = response.avatarUrl, saveSuccess = true) }
                 // Update shared cache with timestamp for cache-busting
                 val cacheBusted = "${response.avatarUrl}?t=${System.currentTimeMillis()}"
                 AvatarCache.set(_uiState.value.displayName, cacheBusted)
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
+                        isUploading = false,
                         errorMessage = "Gagal mengupload avatar: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun removeAvatar() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploading = true, errorMessage = null) }
+            try {
+                api.deleteAvatar(session.userId)
+                _uiState.update { it.copy(isUploading = false, avatarUrl = "", saveSuccess = true) }
+                AvatarCache.set(_uiState.value.displayName, "")
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isUploading = false,
+                        errorMessage = "Gagal menghapus avatar: ${e.localizedMessage}"
                     )
                 }
             }
