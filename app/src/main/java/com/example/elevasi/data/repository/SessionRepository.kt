@@ -65,6 +65,10 @@ class SessionRepository(
             .apply()
     }
 
+    fun clearSession() {
+        preferences.edit().clear().apply()
+    }
+
     private companion object {
         const val PREFS_NAME = "elevasi_session"
         const val KEY_USER_ID = "user_id"

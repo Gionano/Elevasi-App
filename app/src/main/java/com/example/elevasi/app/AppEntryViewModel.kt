@@ -149,6 +149,15 @@ class AppEntryViewModel(
                         errorMessage = null
                     )
                 }
+            }.onFailure {
+                // If the backend returns 404 (e.g. wiped database or new server URL), clear the invalid local session.
+                sessionRepository.clearSession()
+                _uiState.update { current ->
+                    current.copy(
+                        session = null,
+                        errorMessage = "Sesi telah berakhir atau server direset. Silakan daftar kembali."
+                    )
+                }
             }
         }
     }

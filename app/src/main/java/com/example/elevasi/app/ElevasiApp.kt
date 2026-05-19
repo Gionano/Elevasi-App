@@ -141,12 +141,16 @@ private fun AuthenticatedElevasiApp(
         // Fetch profiles to populate shared avatar cache
         LaunchedEffect(session.userId) {
             try {
-                val myProfile = RetrofitClient.apiService.getMyProfile(session.userId)
-                AvatarCache.set(myProfile.displayName, myProfile.avatarUrl)
+                if (session.userId.isNotBlank()) {
+                    val myProfile = RetrofitClient.apiService.getMyProfile(session.userId)
+                    AvatarCache.set(myProfile.displayName, myProfile.avatarUrl)
+                }
             } catch (_: Exception) { /* ignore */ }
             try {
-                val partnerProfile = RetrofitClient.apiService.getMyProfile(session.partnerId)
-                AvatarCache.set(partnerProfile.displayName, partnerProfile.avatarUrl)
+                if (session.partnerId.isNotBlank()) {
+                    val partnerProfile = RetrofitClient.apiService.getMyProfile(session.partnerId)
+                    AvatarCache.set(partnerProfile.displayName, partnerProfile.avatarUrl)
+                }
             } catch (_: Exception) { /* ignore */ }
         }
 

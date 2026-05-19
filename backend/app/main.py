@@ -1369,6 +1369,20 @@ async def get_user_session(user_id: str) -> UserSessionResponse:
 
 
 @app.get(
+    "/is-my-birthday/{my_user_id}",
+    response_model=BirthdayCheckResponse,
+    response_model_by_alias=True,
+)
+async def is_my_birthday(my_user_id: str) -> BirthdayCheckResponse:
+    resolved_user_id = resolve_user_id(my_user_id)
+    ensure_registered(resolved_user_id)
+    return BirthdayCheckResponse(
+        userId=public_id_for(resolved_user_id, fallback=resolved_user_id.value),
+        isMyBirthday=is_birthday_for(resolved_user_id),
+    )
+
+
+@app.get(
     "/reflection/current",
     response_model=ReflectionQuestionResponse,
     response_model_by_alias=True,
