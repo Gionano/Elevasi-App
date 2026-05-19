@@ -77,6 +77,15 @@ class UserSessionResponse(BaseModel):
 
 
 
+class BirthdayCheckResponse(BaseModel):
+    user_id: str = Field(alias="userId")
+    is_my_birthday: bool = Field(alias="isMyBirthday")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
 class ReflectionAnswerPayload(BaseModel):
     user_id: str = Field(alias="userId")
     answer_text: str = Field(alias="answerText")
