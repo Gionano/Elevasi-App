@@ -23,6 +23,7 @@ import com.example.elevasi.data.model.StickyNoteDto
 import com.example.elevasi.data.model.SubmitReflectionRequest
 import com.example.elevasi.data.model.UserSessionDto
 import com.example.elevasi.data.model.VirtualPlantStatusDto
+import retrofit2.http.DELETE
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -158,5 +159,10 @@ interface ElevasiApiService {
     suspend fun uploadAvatar(
         @Query("user_id") userId: String,
         @Part file: okhttp3.MultipartBody.Part
+    ): AvatarUploadResponse
+
+    @DELETE("api/profile/avatar")
+    suspend fun deleteAvatar(
+        @Query("user_id") userId: String
     ): AvatarUploadResponse
 }
