@@ -65,16 +65,29 @@ import com.example.elevasi.ui.theme.ElevasiTextPrimary
 import com.example.elevasi.ui.theme.ElevasiTextSecondary
 import com.example.elevasi.BuildConfig
 import android.net.Uri
+import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import com.canhub.cropper.CropImageContract
+import com.canhub.cropper.CropImageContractOptions
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -118,13 +131,51 @@ fun AccountSettingsScreen(
     }
 
     val context = LocalContext.current
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            viewModel.uploadAvatar(context, uri)
-        }
+
+    // ── Bottom sheet state ───────────────────────────────────────────
+    var showAvatarSheet by remember { mutableStateOf(false) }
+    var showImageViewer by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // ── Camera URI helper ────────────────────────────────────────────
+    val cameraImageUri = remember {
+        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "avatar_temp.jpg")
+        FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }
+
+    // ── Cropper contract (1:1 square, circle guide) ──────────────────
+    val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
+        if (result.isSuccessful) {
+            result.uriContent?.let { cropped -> viewModel.uploadAvatar(context, cropped) }
+        }
+        showAvatarSheet = false
+    }
+
+    fun launchCropper(sourceUri: Uri?) {
+        val opts = CropImageContractOptions(
+            uri = sourceUri,
+            cropImageOptions = CropImageOptions(
+                aspectRatioX = 1,
+                aspectRatioY = 1,
+                fixAspectRatio = true,
+                cropShape = CropImageView.CropShape.OVAL,
+                guidelines = CropImageView.Guidelines.ON,
+                outputRequestWidth = 512,
+                outputRequestHeight = 512,
+            )
+        )
+        cropLauncher.launch(opts)
+    }
+
+    // ── Gallery picker → cropper ─────────────────────────────────────
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri -> launchCropper(uri) }
+
+    // ── Camera → cropper ─────────────────────────────────────────────
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success -> if (success) launchCropper(cameraImageUri) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
@@ -216,7 +267,8 @@ fun AccountSettingsScreen(
                     displayName = state.displayName,
                     bio = state.bio,
                     avatarUrl = state.avatarUrl,
-                    onAvatarClick = { imagePickerLauncher.launch("image/*") }
+                    isUploading = state.isUploading,
+                    onAvatarClick = { showAvatarSheet = true }
                 )
             }
 
@@ -298,6 +350,45 @@ fun AccountSettingsScreen(
                 )
             }
         }
+        
+        // ── Avatar Bottom Sheet ───────────────────────────────────
+        if (showAvatarSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showAvatarSheet = false },
+                sheetState = sheetState,
+                containerColor = ElevasiSurface
+            ) {
+                AvatarPhotoBottomSheet(
+                    hasAvatar = state.avatarUrl.isNotBlank(),
+                    onViewPhoto = {
+                        showAvatarSheet = false
+                        showImageViewer = true
+                    },
+                    onTakePhoto = {
+                        showAvatarSheet = false
+                        cameraLauncher.launch(cameraImageUri)
+                    },
+                    onUploadPhoto = {
+                        showAvatarSheet = false
+                        galleryLauncher.launch("image/*")
+                    },
+                    onRemovePhoto = {
+                        showAvatarSheet = false
+                        viewModel.removeAvatar()
+                    }
+                )
+            }
+        }
+
+        // ── Image Viewer ──────────────────────────────────────────
+        if (showImageViewer && state.avatarUrl.isNotBlank()) {
+            val base = BuildConfig.API_BASE_URL.trimEnd('/')
+            val fullUrl = if (state.avatarUrl.startsWith("http")) state.avatarUrl else "$base${state.avatarUrl}"
+            com.example.elevasi.feature.beranda.ImageViewerDialog(
+                imageUrl = fullUrl,
+                onDismiss = { showImageViewer = false }
+            )
+        }
     }
 }
 
@@ -310,6 +401,7 @@ private fun HeroProfileSection(
     displayName: String,
     bio: String,
     avatarUrl: String,
+    isUploading: Boolean = false,
     onAvatarClick: () -> Unit
 ) {
     Column(
@@ -647,4 +739,55 @@ private fun SectionDivider() {
         color = ElevasiTextSecondary.copy(alpha = 0.12f),
         thickness = 0.5.dp
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Avatar Photo Bottom Sheet
+// ─────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarPhotoBottomSheet(
+    hasAvatar: Boolean,
+    onViewPhoto: () -> Unit,
+    onTakePhoto: () -> Unit,
+    onUploadPhoto: () -> Unit,
+    onRemovePhoto: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp)
+    ) {
+        if (hasAvatar) {
+            ListItem(
+                headlineContent = { Text("Lihat Foto") },
+                leadingContent = { Icon(Icons.Outlined.Visibility, contentDescription = null) },
+                modifier = Modifier.clickable { onViewPhoto() },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            )
+        }
+        
+        ListItem(
+            headlineContent = { Text("Ambil Foto dari Kamera") },
+            leadingContent = { Icon(Icons.Outlined.CameraAlt, contentDescription = null) },
+            modifier = Modifier.clickable { onTakePhoto() },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
+        
+        ListItem(
+            headlineContent = { Text("Pilih dari Galeri") },
+            leadingContent = { Icon(Icons.Outlined.Image, contentDescription = null) },
+            modifier = Modifier.clickable { onUploadPhoto() },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
+        
+        if (hasAvatar) {
+            ListItem(
+                headlineContent = { Text("Hapus Foto", color = Color(0xFFE57373)) },
+                leadingContent = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFE57373)) },
+                modifier = Modifier.clickable { onRemovePhoto() },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            )
+        }
+    }
 }
