@@ -17,15 +17,10 @@ import com.example.elevasi.data.model.ProfileDto
 import com.example.elevasi.data.model.ProfileUpdateRequest
 import com.example.elevasi.data.model.JournalEntryRequest
 import com.example.elevasi.data.model.JournalEntryResponse
-import com.example.elevasi.data.model.PresenceStatusDto
-import com.example.elevasi.data.model.ReactionDto
-import com.example.elevasi.data.model.ReactionInboxDto
 import com.example.elevasi.data.model.ReflectionDialogDto
 import com.example.elevasi.data.model.RegisterUserRequest
-import com.example.elevasi.data.model.SendReactionRequest
 import com.example.elevasi.data.model.StickyNoteDto
 import com.example.elevasi.data.model.SubmitReflectionRequest
-import com.example.elevasi.data.model.UpdatePresenceStatusRequest
 import com.example.elevasi.data.model.UserSessionDto
 import com.example.elevasi.data.model.VirtualPlantStatusDto
 import retrofit2.http.Body
@@ -58,28 +53,6 @@ interface ElevasiApiService {
     suspend fun isMyBirthday(
         @Path("myUserId") myUserId: String
     ): BirthdayStateDto
-
-    @GET("status/{userId}")
-    suspend fun getPresenceStatus(
-        @Path("userId") userId: String
-    ): PresenceStatusDto
-
-    @POST("status/{userId}")
-    suspend fun updatePresenceStatus(
-        @Path("userId") userId: String,
-        @Body request: UpdatePresenceStatusRequest
-    ): PresenceStatusDto
-
-    @POST("reaction/{targetUserId}")
-    suspend fun sendReaction(
-        @Path("targetUserId") targetUserId: String,
-        @Body request: SendReactionRequest
-    ): ReactionDto
-
-    @GET("reaction/{myUserId}")
-    suspend fun getIncomingReaction(
-        @Path("myUserId") myUserId: String
-    ): ReactionInboxDto
 
     @GET("reflection/current")
     suspend fun getCurrentReflection(

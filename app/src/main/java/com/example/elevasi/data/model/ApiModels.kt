@@ -39,36 +39,6 @@ data class BirthdayStateDto(
     val isMyBirthday: Boolean
 )
 
-data class PresenceStatusDto(
-    val userId: String,
-    val status: String,
-    val message: String,
-    val updatedAt: String,
-    val isBirthday: Boolean = false
-)
-
-data class UpdatePresenceStatusRequest(
-    val status: String,
-    val message: String
-)
-
-data class SendReactionRequest(
-    val fromUserId: String,
-    val emoji: String
-)
-
-data class ReactionDto(
-    val id: Int,
-    val fromUserId: String,
-    val targetUserId: String,
-    val emoji: String,
-    val createdAt: String
-)
-
-data class ReactionInboxDto(
-    val hasReaction: Boolean,
-    val reaction: ReactionDto?
-)
 
 data class ReflectionAnswerDto(
     val userId: String,

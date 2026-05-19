@@ -33,11 +33,6 @@ class UserId(str, Enum):
     ALMEIRA = "almeira"
 
 
-class PresenceStatus(str, Enum):
-    FOKUS = "fokus"
-    ISTIRAHAT = "istirahat"
-    OFFLINE = "offline"
-
 
 class ReflectionPairState(str, Enum):
     EMPTY = "EMPTY"
@@ -81,61 +76,6 @@ class UserSessionResponse(BaseModel):
     }
 
 
-class PresenceStatusRequest(BaseModel):
-    status: PresenceStatus
-    message: str = Field(min_length=1, max_length=280)
-
-
-class PresenceStatusResponse(BaseModel):
-    user_id: str = Field(alias="userId")
-    status: PresenceStatus
-    message: str
-    updated_at: datetime = Field(alias="updatedAt")
-    is_birthday: bool = Field(default=False, alias="isBirthday")
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class BirthdayCheckResponse(BaseModel):
-    user_id: str = Field(alias="userId")
-    is_my_birthday: bool = Field(alias="isMyBirthday")
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class ReactionRequest(BaseModel):
-    from_user_id: str = Field(alias="fromUserId")
-    emoji: str = Field(min_length=1, max_length=8)
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class ReactionResponse(BaseModel):
-    id: int
-    from_user_id: str = Field(alias="fromUserId")
-    target_user_id: str = Field(alias="targetUserId")
-    emoji: str
-    created_at: datetime = Field(alias="createdAt")
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class ReactionInboxResponse(BaseModel):
-    has_reaction: bool = Field(alias="hasReaction")
-    reaction: ReactionResponse | None = None
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
 
 class ReflectionAnswerPayload(BaseModel):
     user_id: str = Field(alias="userId")
@@ -165,48 +105,6 @@ class ReflectionSubmitRequest(BaseModel):
     question_id: int = Field(alias="questionId")
     user_id: str = Field(alias="userId")
     answer_text: str = Field(alias="answerText", min_length=20, max_length=2000)
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class PresenceSyncState(BaseModel):
-    my_updated_at: datetime = Field(alias="myUpdatedAt")
-    partner_updated_at: datetime = Field(alias="partnerUpdatedAt")
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class ReactionSyncState(BaseModel):
-    unread_count: int = Field(alias="unreadCount")
-    latest_reaction_id: int | None = Field(default=None, alias="latestReactionId")
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class ReflectionSyncState(BaseModel):
-    question_id: int = Field(alias="questionId")
-    pair_state: ReflectionPairState = Field(alias="pairState")
-    partner_locked: bool = Field(alias="partnerLocked")
-    my_submitted_at: datetime | None = Field(default=None, alias="mySubmittedAt")
-    partner_submitted_at: datetime | None = Field(default=None, alias="partnerSubmittedAt")
-
-    model_config = {
-        "populate_by_name": True,
-    }
-
-
-class SyncSnapshotResponse(BaseModel):
-    user_id: str = Field(alias="userId")
-    generated_at: datetime = Field(alias="generatedAt")
-    presence: PresenceSyncState
-    reaction: ReactionSyncState
-    reflection: ReflectionSyncState
 
     model_config = {
         "populate_by_name": True,
@@ -380,13 +278,10 @@ APP_DIR = Path(__file__).resolve().parent
 STATIC_DIR = Path(os.getenv("ELEVASI_STATIC_DIR", str(APP_DIR / "static")))
 DB_PATH = Path(os.getenv("ELEVASI_DB_PATH", str(APP_DIR / "elevasi.db")))
 APK_DOWNLOAD_DIR = Path(os.getenv("ELEVASI_APK_DIR", str(STATIC_DIR / "apk")))
-DEFAULT_STATUS_MESSAGE = "Belum ada status yang dikirim hari ini."
 LATEST_APK_FILENAME = "elevasi-latest.apk"
 LATEST_APP_VERSION_CODE = 1
 LATEST_APP_VERSION_NAME = "1.0"
 LATEST_APP_RELEASE_NOTES = (
-    "- Penyempurnaan tampilan onboarding, dashboard, refleksi, dan Gerbang Langit.\n"
-    "- Shared Presence dan Ruang Dialog Terkunci lebih rapi dan lebih ringan.\n"
     "- Perbaikan konektivitas untuk Android versi baru dan fondasi self-hosted update."
 )
 
@@ -515,18 +410,6 @@ STICKY_NOTE_COLORS = (
     "#F3CCD7",
 )
 
-PRESENCE_STORE = {
-    user: PresenceStatusResponse(
-        userId=user,
-        status=PresenceStatus.OFFLINE,
-        message=DEFAULT_STATUS_MESSAGE,
-        updatedAt=datetime.now(timezone.utc),
-    )
-    for user in UserId
-}
-
-REACTION_INBOX = {user: [] for user in UserId}
-REACTION_COUNTER = 0
 JOURNAL_ENTRIES: list[str] = []
 
 APK_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -1035,12 +918,6 @@ def display_name_for(user_id: UserId, fallback: str = "teman") -> str:
     return fallback
 
 
-def default_presence_message_for(user_id: UserId) -> str:
-    row = get_registered_user(user_id)
-    if row_has_identity(row):
-        return f"{row['name']} belum mengirim status hari ini."
-    return "Dia belum bergabung ke Elevasi."
-
 
 def build_user_session(user_id: UserId) -> UserSessionResponse:
     user_row = get_registered_user(user_id)
@@ -1084,9 +961,6 @@ def is_birthday_for(user_id: UserId, current_date: date | None = None) -> bool:
         target_date.day == int(user_row["birthday_day"])
     )
 
-
-def birthday_status_message(user_id: UserId) -> str:
-    return f"Hari ini hari spesial {display_name_for(user_id)}! \U0001F382"
 
 
 def current_week_start(current_date: date | None = None) -> date:
@@ -1439,51 +1313,6 @@ def build_reflection_view(question_row: sqlite3.Row, requester_id: UserId) -> Re
     )
 
 
-def build_sync_snapshot(user_id: UserId) -> SyncSnapshotResponse:
-    ensure_registered(user_id)
-
-    partner_id = partner_of(user_id)
-    my_status = PRESENCE_STORE[user_id]
-    partner_status = PRESENCE_STORE[partner_id]
-    pending_reactions = REACTION_INBOX[user_id]
-    latest_reaction = pending_reactions[-1] if pending_reactions else None
-
-    question_row = ensure_current_weekly_question()
-    my_answer_row = get_reflection_answer(question_row["id"], user_id)
-    partner_answer_row = get_reflection_answer(question_row["id"], partner_id)
-    answer_count = int(my_answer_row is not None) + int(partner_answer_row is not None)
-
-    if answer_count == 0:
-        pair_state = ReflectionPairState.EMPTY
-    elif answer_count == 1:
-        pair_state = ReflectionPairState.PARTIAL
-    else:
-        pair_state = ReflectionPairState.REVEALED
-
-    return SyncSnapshotResponse(
-        userId=public_id_for(user_id, fallback=user_id.value),
-        generatedAt=utc_now(),
-        presence=PresenceSyncState(
-            myUpdatedAt=my_status.updated_at,
-            partnerUpdatedAt=partner_status.updated_at,
-        ),
-        reaction=ReactionSyncState(
-            unreadCount=len(pending_reactions),
-            latestReactionId=latest_reaction.id if latest_reaction is not None else None,
-        ),
-        reflection=ReflectionSyncState(
-            questionId=question_row["id"],
-            pairState=pair_state,
-            partnerLocked=my_answer_row is None,
-            mySubmittedAt=datetime.fromisoformat(my_answer_row["submitted_at"])
-            if my_answer_row is not None
-            else None,
-            partnerSubmittedAt=datetime.fromisoformat(partner_answer_row["submitted_at"])
-            if partner_answer_row is not None
-            else None,
-        ),
-    )
-
 
 init_db()
 
@@ -1537,160 +1366,6 @@ async def get_user_session(user_id: str) -> UserSessionResponse:
     ensure_registered(resolved_user_id)
     return build_user_session(resolved_user_id)
 
-
-@app.post(
-    "/status/{user_id}",
-    response_model=PresenceStatusResponse,
-    response_model_by_alias=True,
-)
-async def update_status(
-    user_id: str,
-    payload: PresenceStatusRequest,
-) -> PresenceStatusResponse:
-    resolved_user_id = resolve_user_id(user_id)
-    ensure_registered(resolved_user_id)
-
-    PRESENCE_STORE[resolved_user_id] = PresenceStatusResponse(
-        userId=public_id_for(resolved_user_id, fallback=resolved_user_id.value),
-        status=payload.status,
-        message=payload.message.strip(),
-        updatedAt=utc_now(),
-        isBirthday=False,
-    )
-    return PRESENCE_STORE[resolved_user_id]
-
-
-@app.get(
-    "/status/{partner_id}",
-    response_model=PresenceStatusResponse,
-    response_model_by_alias=True,
-)
-async def get_partner_status(partner_id: str) -> PresenceStatusResponse:
-    fallback_public_id = partner_id.strip().casefold()
-
-    try:
-        resolved_partner_id = resolve_user_id(partner_id)
-    except HTTPException:
-        return PresenceStatusResponse(
-            userId=fallback_public_id,
-            status=PresenceStatus.OFFLINE,
-            message="Dia belum bergabung ke Elevasi.",
-            updatedAt=utc_now(),
-            isBirthday=False,
-        )
-
-    partner_row = get_registered_user(resolved_partner_id)
-    if not row_has_identity(partner_row):
-        return PresenceStatusResponse(
-            userId=fallback_public_id,
-            status=PresenceStatus.OFFLINE,
-            message="Dia belum bergabung ke Elevasi.",
-            updatedAt=utc_now(),
-            isBirthday=False,
-        )
-
-    if is_birthday_for(resolved_partner_id):
-        return PresenceStatusResponse(
-            userId=public_id_for(resolved_partner_id, fallback=fallback_public_id),
-            status=PresenceStatus.OFFLINE,
-            message=birthday_status_message(resolved_partner_id).replace("\U0001F382", "\U0001F389"),
-            updatedAt=utc_now(),
-            isBirthday=True,
-        )
-
-    partner_status = PRESENCE_STORE[resolved_partner_id]
-    partner_message = partner_status.message
-    if partner_message == DEFAULT_STATUS_MESSAGE:
-        partner_message = default_presence_message_for(resolved_partner_id)
-
-    return PresenceStatusResponse(
-        userId=public_id_for(resolved_partner_id, fallback=fallback_public_id),
-        status=partner_status.status,
-        message=partner_message,
-        updatedAt=partner_status.updated_at,
-        isBirthday=False,
-    )
-
-
-@app.get(
-    "/is-my-birthday/{my_user_id}",
-    response_model=BirthdayCheckResponse,
-    response_model_by_alias=True,
-)
-async def is_my_birthday(my_user_id: str) -> BirthdayCheckResponse:
-    resolved_user_id = resolve_user_id(my_user_id)
-    ensure_registered(resolved_user_id)
-    return BirthdayCheckResponse(
-        userId=public_id_for(resolved_user_id, fallback=resolved_user_id.value),
-        isMyBirthday=is_birthday_for(resolved_user_id),
-    )
-
-
-@app.post(
-    "/reaction/{target_user_id}",
-    response_model=ReactionResponse,
-    response_model_by_alias=True,
-    status_code=status.HTTP_201_CREATED,
-)
-async def send_reaction(
-    target_user_id: str,
-    payload: ReactionRequest,
-) -> ReactionResponse:
-    global REACTION_COUNTER
-
-    resolved_from_user_id = resolve_user_id(payload.from_user_id)
-    resolved_target_user_id = resolve_user_id(target_user_id)
-    ensure_registered(resolved_from_user_id)
-
-    if resolved_from_user_id == resolved_target_user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tidak bisa mengirim reaction ke diri sendiri.",
-        )
-
-    expected_target = partner_of(resolved_from_user_id)
-    if expected_target != resolved_target_user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reaction hanya bisa dikirim ke teman yang terhubung.",
-        )
-
-    REACTION_COUNTER += 1
-    reaction = ReactionResponse(
-        id=REACTION_COUNTER,
-        fromUserId=public_id_for(resolved_from_user_id, fallback=resolved_from_user_id.value),
-        targetUserId=public_id_for(resolved_target_user_id, fallback=resolved_target_user_id.value),
-        emoji=payload.emoji,
-        createdAt=utc_now(),
-    )
-    REACTION_INBOX[resolved_target_user_id].append(reaction)
-    return reaction
-
-
-@app.get(
-    "/reaction/{my_user_id}",
-    response_model=ReactionInboxResponse,
-    response_model_by_alias=True,
-)
-async def get_latest_reaction(my_user_id: str) -> ReactionInboxResponse:
-    resolved_user_id = resolve_user_id(my_user_id)
-    ensure_registered(resolved_user_id)
-
-    if REACTION_INBOX[resolved_user_id]:
-        reaction = REACTION_INBOX[resolved_user_id].pop(0)
-        return ReactionInboxResponse(hasReaction=True, reaction=reaction)
-
-    return ReactionInboxResponse(hasReaction=False, reaction=None)
-
-
-@app.get(
-    "/sync/{user_id}",
-    response_model=SyncSnapshotResponse,
-    response_model_by_alias=True,
-)
-async def get_sync_snapshot(user_id: str) -> SyncSnapshotResponse:
-    resolved_user_id = resolve_user_id(user_id)
-    return build_sync_snapshot(resolved_user_id)
 
 
 @app.get(
