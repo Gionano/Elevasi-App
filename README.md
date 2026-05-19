@@ -21,7 +21,6 @@ Elevasi adalah platform tertutup yang hanya bisa diakses oleh dua pengguna. Terd
 ## Fitur Utama
 
 - **Onboarding** — Pendaftaran nama dan tanggal ulang tahun saat pertama buka aplikasi; menghasilkan public user ID yang stabil
-- **Shared Presence** — Update status dua arah secara real-time dengan reaksi emoji antar pasangan
 - **Ruang Dialog Terkunci** — Pertanyaan refleksi mingguan yang menyembunyikan jawaban pasangan sampai keduanya sudah mengisi
 - **Gerbang Langit / Verse Harian** — Koleksi verse harian yang berotasi berdasarkan tanggal lokal device, refresh saat resume
 - **Mading Interaktif** — Sticky note dengan drag-and-drop dan sinkronisasi real-time via WebSocket
@@ -164,14 +163,6 @@ Lokasi APK: `app/build/outputs/apk/debug/app-debug.apk`
 |--------|----------|------------|
 | `POST` | `/users/register` | Daftar nama dan tanggal lahir |
 | `GET` | `/users/{user_id}` | Ambil data sesi pengguna |
-
-### Presence & Reaksi
-| Method | Endpoint | Keterangan |
-|--------|----------|------------|
-| `POST` | `/status/{user_id}` | Update status presence |
-| `GET` | `/status/{partner_id}` | Ambil status pasangan |
-| `POST` | `/reaction/{target_user_id}` | Kirim reaksi emoji |
-| `GET` | `/reaction/{my_user_id}` | Ambil reaksi yang diterima |
 
 ### Profil
 | Method | Endpoint | Keterangan |
