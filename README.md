@@ -26,7 +26,7 @@ Elevasi adalah platform tertutup yang hanya bisa diakses oleh dua pengguna. Terd
 - **Mading Interaktif** — Sticky note dengan drag-and-drop dan sinkronisasi real-time via WebSocket
 - **Tanaman Virtual Bersama** — Tanaman animasi Lottie 4 level yang dibagikan berdua; naik level lewat EXP, layu jika tidak dirawat 3 hari
 - **Kertas Terbang / Feed** — Posting refleksi pendek dengan lampiran gambar, likes, pin, dan balasan berulir
-- **Pengaturan Akun** — Upload foto profil, edit nama tampilan, bio, dan tanggal lahir
+- **Pengaturan Akun & Profil** — Advanced Profile Picture Manager (Upload foto, Ambil dari kamera, Cropper 1:1 rasio, Hapus foto), edit nama tampilan, bio, dan tanggal lahir
 - **Birthday Surprise Mode** — Tema aplikasi berubah total di hari ulang tahun pasangan, dijadwalkan dengan AlarmManager
 - **Self-Hosted In-App Update** — Cek versi APK terbaru dari backend sendiri dan tampilkan dialog unduh
 
