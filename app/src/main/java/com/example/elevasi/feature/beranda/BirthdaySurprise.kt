@@ -46,11 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.elevasi.ui.theme.ElevasiBackground
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiSurface
-import com.example.elevasi.ui.theme.ElevasiTextPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
 import java.time.LocalDate
 
 // ══════════════════════════════════════════════════════════════════════
@@ -94,7 +89,7 @@ fun BirthdaySurpriseDialog(
                 .scale(scale)
                 .animateContentSize(),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = ElevasiBackground),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
@@ -117,8 +112,8 @@ fun BirthdaySurpriseDialog(
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        ElevasiPrimary.copy(alpha = 0.35f),
-                                        ElevasiPrimary.copy(alpha = 0.08f)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                                     )
                                 )
                             ),
@@ -137,7 +132,7 @@ fun BirthdaySurpriseDialog(
                     text = "Selamat Hari Menetas!",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = ElevasiTextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
                 )
 
@@ -147,7 +142,7 @@ fun BirthdaySurpriseDialog(
                     text = "untuk $recipientName 🌸",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = ElevasiPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center
                 )
 
@@ -162,7 +157,7 @@ fun BirthdaySurpriseDialog(
                             "karena cahayamu menerangi lebih banyak hati " +
                             "daripada yang kau sadari. 💛",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = ElevasiTextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 22.sp
                 )
@@ -175,7 +170,7 @@ fun BirthdaySurpriseDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = ElevasiPrimary,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
@@ -209,15 +204,15 @@ fun BirthdayPinnedCard(
                 width = 1.5.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        ElevasiPrimary.copy(alpha = 0.7f),
-                        ElevasiPrimary.copy(alpha = 0.3f),
-                        ElevasiPrimary.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
                 ),
                 shape = RoundedCornerShape(18.dp)
             ),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = ElevasiSurface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -232,7 +227,7 @@ fun BirthdayPinnedCard(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(ElevasiPrimary.copy(alpha = 0.2f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -247,7 +242,7 @@ fun BirthdayPinnedCard(
                     text = "Elevasi",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = ElevasiPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
 
                 Spacer(modifier = Modifier.width(4.dp))
@@ -255,7 +250,7 @@ fun BirthdayPinnedCard(
                 Text(
                     text = "✦",
                     fontSize = 10.sp,
-                    color = ElevasiPrimary.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                 )
 
                 Spacer(modifier = Modifier.width(6.dp))
@@ -263,7 +258,7 @@ fun BirthdayPinnedCard(
                 Text(
                     text = "· Kejutan Spesial",
                     style = MaterialTheme.typography.bodySmall,
-                    color = ElevasiTextSecondary.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
 
@@ -274,7 +269,7 @@ fun BirthdayPinnedCard(
                 text = "🌸 Selamat Ulang Tahun, $recipientName! 🌸",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = ElevasiTextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 lineHeight = 24.sp
             )
 
@@ -285,7 +280,7 @@ fun BirthdayPinnedCard(
                         "menemukan jalannya, dan setiap langkahmu dipenuhi kebahagiaan. " +
                         "Kamu berharga, selalu. 💛",
                 style = MaterialTheme.typography.bodyMedium,
-                color = ElevasiTextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 22.sp
             )
 
@@ -295,14 +290,14 @@ fun BirthdayPinnedCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(ElevasiPrimary.copy(alpha = 0.1f))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = "🎉 Kertas Terbang Emas",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
-                    color = ElevasiPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontStyle = FontStyle.Italic
                 )
             }
