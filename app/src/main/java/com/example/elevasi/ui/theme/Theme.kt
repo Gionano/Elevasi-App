@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
+import com.example.elevasi.data.model.ThemeSelection
+
 // ── Light Color Scheme (Warm Ivory + Rose Gold) ──────────────────────
 private val LightColorScheme = lightColorScheme(
     primary = ElevasiPrimary,
@@ -34,17 +36,24 @@ private val LightColorScheme = lightColorScheme(
 
 // ── Dark Color Scheme ────────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
-    primary = RoseGlow,
-    onPrimary = MossNight,
-    secondary = SageMist,
-    onSecondary = MossNight,
-    tertiary = Sandstone,
-    background = MossNight,
-    onBackground = Ivory,
-    surface = WarmSlate,
-    onSurface = Ivory,
-    surfaceVariant = WarmSlate,
-    onSurfaceVariant = RoseGlow
+    primary = ElevasiPrimaryDarkTheme,
+    onPrimary = ElevasiBackgroundDark,
+    primaryContainer = ElevasiPrimaryContainerDark,
+    onPrimaryContainer = ElevasiOnPrimaryContainerDark,
+    secondary = ElevasiSurfaceDark,
+    onSecondary = ElevasiTextPrimaryDark,
+    tertiary = ElevasiPrimaryDarkTheme,
+    background = ElevasiBackgroundDark,
+    onBackground = ElevasiTextPrimaryDark,
+    surface = ElevasiSurfaceDark,
+    onSurface = ElevasiTextPrimaryDark,
+    surfaceVariant = ElevasiSurfaceDark,
+    onSurfaceVariant = ElevasiTextSecondaryDark,
+    surfaceContainerLow = ElevasiBackgroundDark,
+    surfaceContainer = ElevasiBackgroundDark,
+    surfaceContainerHigh = ElevasiSurfaceDark,
+    outline = ElevasiTextSecondaryDark.copy(alpha = 0.3f),
+    outlineVariant = ElevasiTextSecondaryDark.copy(alpha = 0.15f)
 )
 
 // ── Birthday Color Scheme ────────────────────────────────────────────
@@ -76,10 +85,16 @@ private val ElevasiShapes = Shapes(
 
 @Composable
 fun ElevasiTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeSelection: ThemeSelection = ThemeSelection.FOLLOW_SYSTEM,
     isBirthdayMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themeSelection) {
+        ThemeSelection.LIGHT -> false
+        ThemeSelection.DARK -> true
+        ThemeSelection.FOLLOW_SYSTEM -> isSystemInDarkTheme()
+    }
+
     MaterialTheme(
         colorScheme = when {
             isBirthdayMode -> BirthdayColorScheme
