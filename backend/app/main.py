@@ -258,6 +258,7 @@ class ProfileResponse(BaseModel):
     birthday_month: int = Field(alias="birthday_month")
     birthday_day: int = Field(alias="birthday_day")
     avatar_url: str = Field(alias="avatar_url")
+    theme_preference: str = Field(alias="theme_preference", default="FOLLOW_SYSTEM")
 
     model_config = {
         "populate_by_name": True,
@@ -273,6 +274,16 @@ class ProfileUpdatePayload(BaseModel):
     model_config = {
         "populate_by_name": True,
     }
+
+
+class ThemeUpdateRequest(BaseModel):
+    user_id: str = Field(alias="user_id")
+    theme_preference: str = Field(alias="theme_preference")
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
 
 
 class AvatarUploadResponse(BaseModel):
@@ -644,10 +655,21 @@ def init_db() -> None:
                 display_name TEXT NOT NULL,
                 bio TEXT NOT NULL DEFAULT '',
                 avatar_url TEXT NOT NULL DEFAULT '',
+                theme_preference TEXT NOT NULL DEFAULT 'FOLLOW_SYSTEM',
                 updated_at TEXT NOT NULL
             )
             """
         )
+
+        existing_profile_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(user_profiles)").fetchall()
+        }
+        if "theme_preference" not in existing_profile_columns:
+            connection.execute(
+                "ALTER TABLE user_profiles ADD COLUMN theme_preference TEXT NOT NULL DEFAULT 'FOLLOW_SYSTEM'"
+            )
+
 
 
 def partner_of(user_id: UserId) -> UserId:
@@ -1603,7 +1625,7 @@ def get_or_create_profile(user_id: UserId) -> dict:
     with get_connection() as connection:
         row = connection.execute(
             """
-            SELECT user_id, display_name, bio, avatar_url, updated_at
+            SELECT user_id, display_name, bio, avatar_url, theme_preference, updated_at
             FROM user_profiles
             WHERE user_id = ?
             """,
@@ -1612,12 +1634,14 @@ def get_or_create_profile(user_id: UserId) -> dict:
 
     if row is not None:
         user_row = get_registered_user(user_id)
+        theme_pref = row["theme_preference"] if "theme_preference" in row.keys() and row["theme_preference"] else "FOLLOW_SYSTEM"
         return {
             "display_name": row["display_name"],
             "bio": row["bio"],
             "birthday_month": int(user_row["birthday_month"]) if row_has_identity(user_row) else 1,
             "birthday_day": int(user_row["birthday_day"]) if row_has_identity(user_row) else 1,
             "avatar_url": row["avatar_url"],
+            "theme_preference": theme_pref,
         }
 
     # Fallback: buat dari data registrasi
@@ -1629,6 +1653,7 @@ def get_or_create_profile(user_id: UserId) -> dict:
             "birthday_month": 1,
             "birthday_day": 1,
             "avatar_url": "",
+            "theme_preference": "FOLLOW_SYSTEM",
         }
 
     return {
@@ -1637,6 +1662,7 @@ def get_or_create_profile(user_id: UserId) -> dict:
         "birthday_month": int(user_row["birthday_month"]),
         "birthday_day": int(user_row["birthday_day"]),
         "avatar_url": "",
+        "theme_preference": "FOLLOW_SYSTEM",
     }
 
 
@@ -1657,6 +1683,7 @@ async def get_profile(user_id: str) -> ProfileResponse:
         birthday_month=profile["birthday_month"],
         birthday_day=profile["birthday_day"],
         avatar_url=profile["avatar_url"],
+        theme_preference=profile["theme_preference"],
     )
 
 
@@ -1680,12 +1707,12 @@ async def update_profile(
     bio = payload.bio.strip()
     now = utc_now().isoformat()
 
-    # Update user_profiles table
+    # Update user_profiles table (keeps existing theme_preference value)
     with get_connection() as connection:
         connection.execute(
             """
-            INSERT INTO user_profiles (user_id, display_name, bio, avatar_url, updated_at)
-            VALUES (?, ?, ?, '', ?)
+            INSERT INTO user_profiles (user_id, display_name, bio, avatar_url, theme_preference, updated_at)
+            VALUES (?, ?, ?, '', 'FOLLOW_SYSTEM', ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 display_name = excluded.display_name,
                 bio = excluded.bio,
@@ -1704,7 +1731,7 @@ async def update_profile(
         birthday_day=birthday_day,
     )
 
-    # Ambil avatar_url terkini
+    # Ambil avatar_url dan theme_preference terkini
     profile = get_or_create_profile(resolved_user_id)
 
     return ProfileResponse(
@@ -1713,7 +1740,55 @@ async def update_profile(
         birthday_month=birthday_month,
         birthday_day=birthday_day,
         avatar_url=profile["avatar_url"],
+        theme_preference=profile["theme_preference"],
     )
+
+
+@app.patch(
+    "/api/profile/me",
+    response_model=ProfileResponse,
+    response_model_by_alias=True,
+)
+async def update_theme_preference(
+    payload: ThemeUpdateRequest,
+) -> ProfileResponse:
+    """Perbarui preferensi tema pengguna."""
+    resolved_user_id = resolve_user_id(payload.user_id)
+    ensure_registered(resolved_user_id)
+
+    theme_pref = payload.theme_preference.strip().upper()
+    if theme_pref not in ["LIGHT", "DARK", "FOLLOW_SYSTEM"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Pilihan tema tidak valid.",
+        )
+
+    now = utc_now().isoformat()
+
+    # Update or insert theme preference in user_profiles
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO user_profiles (user_id, display_name, bio, avatar_url, theme_preference, updated_at)
+            VALUES (?, 'Pengguna', '', '', ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                theme_preference = excluded.theme_preference,
+                updated_at = excluded.updated_at
+            """,
+            (resolved_user_id.value, theme_pref, now),
+        )
+
+    profile = get_or_create_profile(resolved_user_id)
+
+    return ProfileResponse(
+        display_name=profile["display_name"],
+        bio=profile["bio"],
+        birthday_month=profile["birthday_month"],
+        birthday_day=profile["birthday_day"],
+        avatar_url=profile["avatar_url"],
+        theme_preference=profile["theme_preference"],
+    )
+
 
 
 @app.post(
