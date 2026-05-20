@@ -24,11 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.elevasi.core.navigation.ElevasiDestination
-import com.example.elevasi.ui.theme.ElevasiBackground
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiPrimaryContainer
-import com.example.elevasi.ui.theme.ElevasiTextPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
 import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.layout.ContentScale
@@ -48,10 +43,10 @@ fun ElevasiTopBar(
     TopAppBar(
         modifier = modifier,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = ElevasiBackground,
-            scrolledContainerColor = ElevasiBackground,
-            titleContentColor = ElevasiTextPrimary,
-            navigationIconContentColor = ElevasiTextPrimary
+            containerColor = MaterialTheme.colorScheme.background,
+            scrolledContainerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground
         ),
         navigationIcon = {
             // Foto profil melingkar — avatar atau inisial nama
@@ -59,7 +54,7 @@ fun ElevasiTopBar(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(ElevasiPrimary.copy(alpha = 0.15f))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                     .clickable(onClick = onProfileClick),
                 contentAlignment = Alignment.Center
             ) {
@@ -75,7 +70,7 @@ fun ElevasiTopBar(
                         text = userName.take(1).uppercase(),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = ElevasiPrimary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -86,7 +81,7 @@ fun ElevasiTopBar(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Medium,
                 fontSize = 20.sp,
-                color = ElevasiTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     )
@@ -104,7 +99,7 @@ fun ElevasiBottomBar(
 ) {
     NavigationBar(
         modifier = modifier,
-        containerColor = ElevasiBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
     ) {
         ElevasiDestination.topLevel.forEach { destination ->
@@ -115,11 +110,11 @@ fun ElevasiBottomBar(
                 onClick = { onTabSelected(destination) },
                 alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = ElevasiPrimary,
-                    selectedTextColor = ElevasiPrimary,
-                    indicatorColor = ElevasiPrimaryContainer,
-                    unselectedIconColor = ElevasiTextSecondary,
-                    unselectedTextColor = ElevasiTextSecondary
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 icon = {
                     Icon(
