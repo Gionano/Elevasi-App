@@ -186,7 +186,9 @@ data class ProfileDto(
     @SerializedName("birthday_day")
     val birthdayDay: Int,
     @SerializedName("avatar_url")
-    val avatarUrl: String
+    val avatarUrl: String,
+    @SerializedName("theme_preference")
+    val themePreference: String? = "FOLLOW_SYSTEM"
 )
 
 data class AvatarUploadResponse(
@@ -203,4 +205,12 @@ data class ProfileUpdateRequest(
     @SerializedName("birthday_day")
     val birthdayDay: Int
 )
+
+data class ThemePreferenceRequest(
+    @SerializedName("user_id")
+    val userId: String,
+    @SerializedName("theme_preference")
+    val themePreference: String
+)
+
 
