@@ -27,8 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
+import androidx.compose.material3.MaterialTheme
 
 @Composable
 fun MediaCarousel(
@@ -97,7 +96,7 @@ fun MediaCarousel(
                 horizontalArrangement = Arrangement.Center
             ) {
                 repeat(mediaUrls.size) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) ElevasiPrimary else ElevasiTextSecondary.copy(alpha = 0.5f)
+                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     Box(
                         modifier = Modifier
                             .padding(2.dp)
