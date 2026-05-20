@@ -32,6 +32,15 @@ val ElevasiPrimaryContainer = Color(0xFFF8D9DE)
 /** Teks di atas primary container */
 val ElevasiOnPrimaryContainer = Color(0xFF5A2D35)
 
+// ── Dark Mode Palette (New) ──────────────────────────────────────────
+val ElevasiBackgroundDark = Color(0xFF1B1A17) // Deep Espresso / Dark Charcoal
+val ElevasiPrimaryDarkTheme = Color(0xFFD4A5A5) // Lighter Rose Gold for better contrast
+val ElevasiSurfaceDark = Color(0xFF2D2B26) // Dark Warm Brown
+val ElevasiTextPrimaryDark = Color(0xFFF2EFE9) // Soft Off-white cream
+val ElevasiTextSecondaryDark = Color(0xFF99918B) // Muted Warm Grey
+val ElevasiPrimaryContainerDark = Color(0xFF4A3538) // Dark soft pink/rose gold container
+val ElevasiOnPrimaryContainerDark = Color(0xFFF8D9DE)
+
 // ── Birthday Mode Palette ────────────────────────────────────────────
 val BlushPink = Color(0xFFFFE2EC)
 val RosePetal = Color(0xFFFFC7DA)
