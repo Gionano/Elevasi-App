@@ -43,9 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.elevasi.data.model.UserSessionDto
 import com.example.elevasi.data.AvatarCache
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiTextPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.CircularProgressIndicator
@@ -156,14 +153,14 @@ fun FeedScreen(
     // Full screen loading only if no posts are available yet
     if (uiState.isLoading && uiState.posts.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = ElevasiPrimary)
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
         return
     }
 
     if (uiState.errorMessage != null && uiState.posts.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = uiState.errorMessage ?: "", color = ElevasiTextSecondary)
+            Text(text = uiState.errorMessage ?: "", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
@@ -198,7 +195,7 @@ fun FeedScreen(
                         BirthdayPinnedCard(recipientName = session.name)
 
                         HorizontalDivider(
-                            color = ElevasiTextSecondary.copy(alpha = 0.15f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
                             thickness = 0.5.dp
                         )
                     }
@@ -218,7 +215,7 @@ fun FeedScreen(
                     )
 
                     HorizontalDivider(
-                        color = ElevasiTextSecondary.copy(alpha = 0.15f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
                         thickness = 0.5.dp
                     )
                 }
@@ -267,7 +264,7 @@ private fun PostCard(
                 modifier = Modifier
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(ElevasiPrimary.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 val avatarFullUrl = AvatarCache.getFullUrl(post.author)
@@ -283,7 +280,7 @@ private fun PostCard(
                         text = post.author.take(1).uppercase(),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ElevasiPrimary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -295,7 +292,7 @@ private fun PostCard(
                 text = post.author,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = ElevasiTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.width(6.dp))
@@ -304,7 +301,7 @@ private fun PostCard(
             Text(
                 text = "· ${post.time}",
                 style = MaterialTheme.typography.bodySmall,
-                color = ElevasiTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             // Pinned indicator
@@ -314,7 +311,7 @@ private fun PostCard(
                     imageVector = Icons.Outlined.PushPin,
                     contentDescription = "Disematkan",
                     modifier = Modifier.size(14.dp),
-                    tint = ElevasiPrimary.copy(alpha = 0.7f)
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                 )
             }
         }
@@ -325,7 +322,7 @@ private fun PostCard(
         Text(
             text = post.content,
             style = MaterialTheme.typography.bodyLarge,
-            color = ElevasiTextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             lineHeight = 24.sp
         )
         
@@ -355,13 +352,13 @@ private fun PostCard(
                     imageVector = Icons.Outlined.ChatBubbleOutline,
                     contentDescription = "Balas",
                     modifier = Modifier.size(18.dp),
-                    tint = ElevasiTextSecondary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (post.repliesCount > 0) {
                     Text(
                         text = "${post.repliesCount}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = ElevasiTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -376,13 +373,13 @@ private fun PostCard(
                     imageVector = if (post.isLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = "Suka",
                     modifier = Modifier.size(18.dp),
-                    tint = if (post.isLiked) ElevasiPrimary else ElevasiTextSecondary
+                    tint = if (post.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (post.likesCount > 0) {
                     Text(
                         text = "${post.likesCount}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (post.isLiked) ElevasiPrimary else ElevasiTextSecondary
+                        color = if (post.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -397,7 +394,7 @@ private fun PostCard(
                     imageVector = Icons.Outlined.PushPin,
                     contentDescription = "Sematkan",
                     modifier = Modifier.size(18.dp),
-                    tint = if (post.isPinned) ElevasiPrimary else ElevasiTextSecondary
+                    tint = if (post.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
