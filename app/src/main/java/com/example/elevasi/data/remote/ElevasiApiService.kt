@@ -15,6 +15,7 @@ import com.example.elevasi.data.model.HabitSummaryDto
 import com.example.elevasi.data.model.HealthResponse
 import com.example.elevasi.data.model.ProfileDto
 import com.example.elevasi.data.model.ProfileUpdateRequest
+import com.example.elevasi.data.model.ThemePreferenceRequest
 import com.example.elevasi.data.model.JournalEntryRequest
 import com.example.elevasi.data.model.JournalEntryResponse
 import com.example.elevasi.data.model.ReflectionDialogDto
@@ -28,6 +29,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.PATCH
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Multipart
@@ -165,4 +167,9 @@ interface ElevasiApiService {
     suspend fun deleteAvatar(
         @Query("user_id") userId: String
     ): AvatarUploadResponse
+
+    @PATCH("api/profile/me")
+    suspend fun updateThemePreference(
+        @Body request: ThemePreferenceRequest
+    ): ProfileDto
 }
