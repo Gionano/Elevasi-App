@@ -54,6 +54,8 @@ import com.example.elevasi.ui.theme.ElevasiPrimary
 import com.example.elevasi.ui.theme.ElevasiTheme
 import com.example.elevasi.data.AvatarCache
 import com.example.elevasi.data.remote.RetrofitClient
+import com.example.elevasi.data.model.ThemeSelection
+import com.example.elevasi.feature.settings.ThemeViewModel
 
 @Composable
 fun ElevasiApp() {
@@ -62,13 +64,17 @@ fun ElevasiApp() {
         factory = AppEntryViewModel.factory(context)
     )
     val inAppUpdateViewModel: InAppUpdateViewModel = viewModel()
+    val themeViewModel: ThemeViewModel = viewModel(
+        factory = ThemeViewModel.factory(context)
+    )
     val appEntryState by appEntryViewModel.uiState.collectAsStateWithLifecycle()
     val updateState by inAppUpdateViewModel.uiState.collectAsStateWithLifecycle()
+    val themeSelection by themeViewModel.themeState.collectAsStateWithLifecycle()
 
     val session = appEntryState.session
 
     if (session == null) {
-        ElevasiTheme {
+        ElevasiTheme(themeSelection = themeSelection) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (appEntryState.isLoading) {
                     Box(
@@ -107,6 +113,8 @@ fun ElevasiApp() {
 
     AuthenticatedElevasiApp(
         session = session,
+        themeSelection = themeSelection,
+        themeViewModel = themeViewModel,
         updateInfo = updateState.availableUpdate,
         onDismissUpdateDialog = inAppUpdateViewModel::dismissUpdateDialog,
         onDownloadUpdate = { downloadUrl ->
@@ -119,6 +127,8 @@ fun ElevasiApp() {
 @Composable
 private fun AuthenticatedElevasiApp(
     session: UserSessionDto,
+    themeSelection: ThemeSelection,
+    themeViewModel: ThemeViewModel,
     updateInfo: AppUpdateInfoDto?,
     onDismissUpdateDialog: () -> Unit,
     onDownloadUpdate: (String) -> Unit
@@ -137,13 +147,17 @@ private fun AuthenticatedElevasiApp(
         BirthdayAlarmScheduler.scheduleNextBirthdayReminder(context, session)
     }
 
-    ElevasiTheme(isBirthdayMode = isBirthdayMode) {
+    ElevasiTheme(
+        themeSelection = themeSelection,
+        isBirthdayMode = isBirthdayMode
+    ) {
         // Fetch profiles to populate shared avatar cache
         LaunchedEffect(session.userId) {
             try {
                 if (session.userId.isNotBlank()) {
                     val myProfile = RetrofitClient.apiService.getMyProfile(session.userId)
                     AvatarCache.set(myProfile.displayName, myProfile.avatarUrl)
+                    themeViewModel.syncThemeFromRemote(myProfile.themePreference)
                 }
             } catch (_: Exception) { /* ignore */ }
             try {
@@ -162,7 +176,7 @@ private fun AuthenticatedElevasiApp(
             }
 
             Scaffold(
-                containerColor = ElevasiBackground,
+                containerColor = MaterialTheme.colorScheme.background,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     ElevasiTopBar(
