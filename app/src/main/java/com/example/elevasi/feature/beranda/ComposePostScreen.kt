@@ -35,10 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.elevasi.data.model.UserSessionDto
-import com.example.elevasi.ui.theme.ElevasiBackground
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiTextPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -93,19 +89,19 @@ fun ComposePostScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = ElevasiBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ElevasiBackground,
-                    titleContentColor = ElevasiTextPrimary
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 ),
                 navigationIcon = {
                     IconButton(onClick = onPostPublished) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Kembali",
-                            tint = ElevasiTextPrimary
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
@@ -125,7 +121,7 @@ fun ComposePostScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Image,
                                 contentDescription = "Pilih Gambar",
-                                tint = ElevasiTextSecondary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         
@@ -135,9 +131,9 @@ fun ComposePostScreen(
                             },
                         enabled = canSubmit && !uiState.isSubmitting,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ElevasiPrimary,
+                            containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White,
-                            disabledContainerColor = ElevasiPrimary.copy(alpha = 0.35f),
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
                             disabledContentColor = Color.White.copy(alpha = 0.6f)
                         ),
                         shape = RoundedCornerShape(20.dp)
@@ -168,7 +164,7 @@ fun ComposePostScreen(
             Text(
                 text = "Menulis sebagai ${session.name}",
                 style = MaterialTheme.typography.bodySmall,
-                color = ElevasiTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -182,15 +178,15 @@ fun ComposePostScreen(
                 placeholder = {
                     Text(
                         text = "Tulis refleksimu di sini…\nBiarkan kata-kata mengalir seperti kertas yang terbang.",
-                        color = ElevasiTextSecondary.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
-                    focusedTextColor = ElevasiTextPrimary,
-                    unfocusedTextColor = ElevasiTextPrimary,
-                    cursorColor = ElevasiPrimary
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    cursorColor = MaterialTheme.colorScheme.primary
                 ),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     lineHeight = 26.sp
@@ -201,7 +197,7 @@ fun ComposePostScreen(
             Text(
                 text = "${content.length} karakter",
                 style = MaterialTheme.typography.labelMedium,
-                color = ElevasiTextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
