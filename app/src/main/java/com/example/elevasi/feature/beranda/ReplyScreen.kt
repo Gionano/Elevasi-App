@@ -59,12 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.elevasi.data.AvatarCache
 import com.example.elevasi.data.model.UserSessionDto
-import com.example.elevasi.ui.theme.ElevasiBackground
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiTextPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,9 +121,9 @@ fun ReplyScreen(
                         },
                         enabled = replyText.isNotBlank() && !uiState.isSubmitting,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ElevasiPrimary,
+                            containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White,
-                            disabledContainerColor = ElevasiPrimary.copy(alpha = 0.5f)
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                         ),
                         modifier = Modifier.padding(end = 8.dp),
                         shape = RoundedCornerShape(50)
@@ -145,13 +140,13 @@ fun ReplyScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ElevasiBackground,
-                    titleContentColor = ElevasiTextPrimary,
-                    navigationIconContentColor = ElevasiTextPrimary
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = ElevasiBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -179,10 +174,10 @@ fun ReplyScreen(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(ElevasiPrimary.copy(alpha = 0.15f)),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val postAvatarUrl = AvatarCache.getFullUrl(postAuthor)
+                                val postAvatarUrl = com.example.elevasi.data.AvatarCache.getFullUrl(postAuthor)
                                 if (postAvatarUrl != null) {
                                     AsyncImage(
                                         model = postAvatarUrl,
@@ -195,7 +190,7 @@ fun ReplyScreen(
                                         text = postAuthor.take(1).uppercase(),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ElevasiPrimary
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -205,7 +200,7 @@ fun ReplyScreen(
                                     .width(2.dp)
                                     .weight(1f) // Takes remaining height
                                     .padding(vertical = 4.dp)
-                                    .background(ElevasiTextSecondary.copy(alpha = 0.3f))
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
                             )
                         }
 
@@ -222,13 +217,13 @@ fun ReplyScreen(
                                     text = postAuthor,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = ElevasiTextPrimary
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "· $postTime",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = ElevasiTextSecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             
@@ -237,7 +232,7 @@ fun ReplyScreen(
                             Text(
                                 text = postContent,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = ElevasiTextPrimary,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 lineHeight = 22.sp
                             )
                             
@@ -255,7 +250,7 @@ fun ReplyScreen(
                             Text(
                                 text = "Membalas kepada $postAuthor",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = ElevasiTextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -277,10 +272,10 @@ fun ReplyScreen(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(ElevasiPrimary.copy(alpha = 0.15f)),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val myAvatarUrl = AvatarCache.getFullUrl(session.name)
+                                val myAvatarUrl = com.example.elevasi.data.AvatarCache.getFullUrl(session.name)
                                 if (myAvatarUrl != null) {
                                     AsyncImage(
                                         model = myAvatarUrl,
@@ -293,7 +288,7 @@ fun ReplyScreen(
                                         text = session.name.take(1).uppercase(),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ElevasiPrimary
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -308,16 +303,16 @@ fun ReplyScreen(
                                 onValueChange = { replyText = it },
                                 modifier = Modifier.fillMaxWidth(),
                                 textStyle = TextStyle(
-                                    color = ElevasiTextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontSize = 16.sp,
                                     lineHeight = 22.sp
                                 ),
-                                cursorBrush = SolidColor(ElevasiPrimary),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                 decorationBox = { innerTextField ->
                                     if (replyText.isEmpty()) {
                                         Text(
                                             text = "Tulis balasanmu...",
-                                            color = ElevasiTextSecondary.copy(alpha = 0.7f),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             fontSize = 16.sp
                                         )
                                     }
@@ -368,7 +363,7 @@ fun ReplyScreen(
                         }
                     }
 
-                    HorizontalDivider(color = ElevasiTextSecondary.copy(alpha = 0.1f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
                 }
 
                 // ── Existing Replies List ─────────────────────────────
@@ -380,7 +375,7 @@ fun ReplyScreen(
                                 .padding(32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = ElevasiPrimary)
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 } else {
@@ -394,10 +389,10 @@ fun ReplyScreen(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(ElevasiPrimary.copy(alpha = 0.15f)),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val replyAvatarUrl = AvatarCache.getFullUrl(reply.authorName)
+                                val replyAvatarUrl = com.example.elevasi.data.AvatarCache.getFullUrl(reply.authorName)
                                 if (replyAvatarUrl != null) {
                                     AsyncImage(
                                         model = replyAvatarUrl,
@@ -410,7 +405,7 @@ fun ReplyScreen(
                                         text = reply.authorName.take(1).uppercase(),
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ElevasiPrimary
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -423,7 +418,7 @@ fun ReplyScreen(
                                         text = reply.authorName,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = ElevasiTextPrimary
+                                        color = MaterialTheme.colorScheme.onBackground
                                     )
                                     // You can format date properly here if needed
                                 }
@@ -433,7 +428,7 @@ fun ReplyScreen(
                                 Text(
                                     text = reply.content,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = ElevasiTextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     lineHeight = 22.sp
                                 )
                                 
@@ -447,7 +442,7 @@ fun ReplyScreen(
                                 }
                             }
                         }
-                        HorizontalDivider(color = ElevasiTextSecondary.copy(alpha = 0.1f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
                     }
                 }
             }
@@ -456,7 +451,7 @@ fun ReplyScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(ElevasiBackground)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -470,7 +465,7 @@ fun ReplyScreen(
                     Icon(
                         imageVector = Icons.Outlined.Image,
                         contentDescription = "Pilih Gambar",
-                        tint = ElevasiPrimary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
