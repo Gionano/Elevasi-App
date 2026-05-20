@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -58,12 +59,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.elevasi.data.model.UserSessionDto
-import com.example.elevasi.ui.theme.ElevasiBackground
-import com.example.elevasi.ui.theme.ElevasiPrimary
-import com.example.elevasi.ui.theme.ElevasiSurface
-import com.example.elevasi.ui.theme.ElevasiTextPrimary
-import com.example.elevasi.ui.theme.ElevasiTextSecondary
 import com.example.elevasi.BuildConfig
+import com.example.elevasi.data.model.ThemeSelection
+import androidx.compose.material.icons.outlined.Palette
 import android.net.Uri
 import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -106,7 +104,11 @@ fun AccountSettingsScreen(
     val viewModel: ProfileViewModel = viewModel(
         factory = ProfileViewModel.factory(session)
     )
+    val themeViewModel: ThemeViewModel = viewModel(
+        factory = ThemeViewModel.factory(LocalContext.current)
+    )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val themeSelection by themeViewModel.themeState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Snackbar saat simpan berhasil
@@ -214,15 +216,15 @@ fun AccountSettingsScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = ElevasiBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ElevasiBackground,
-                    scrolledContainerColor = ElevasiBackground,
-                    titleContentColor = ElevasiTextPrimary,
-                    navigationIconContentColor = ElevasiTextPrimary
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 ),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -250,7 +252,7 @@ fun AccountSettingsScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = ElevasiPrimary)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             return@Scaffold
         }
@@ -331,6 +333,15 @@ fun AccountSettingsScreen(
             }
 
             item {
+                ThemeSettingsItem(
+                    currentTheme = themeSelection,
+                    onThemeSelected = { newTheme ->
+                        themeViewModel.selectTheme(newTheme, session.userId)
+                    }
+                )
+            }
+
+            item {
                 ServerStatusItem(isOnline = state.serverOnline)
             }
 
@@ -356,7 +367,7 @@ fun AccountSettingsScreen(
             ModalBottomSheet(
                 onDismissRequest = { showAvatarSheet = false },
                 sheetState = sheetState,
-                containerColor = ElevasiSurface
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 AvatarPhotoBottomSheet(
                     hasAvatar = state.avatarUrl.isNotBlank(),
@@ -415,7 +426,7 @@ private fun HeroProfileSection(
             modifier = Modifier
                 .size(100.dp)
                 .clip(CircleShape)
-                .background(ElevasiPrimary.copy(alpha = 0.12f))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                 .clickable(onClick = onAvatarClick),
             contentAlignment = Alignment.Center
         ) {
@@ -436,7 +447,7 @@ private fun HeroProfileSection(
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Serif,
-                    color = ElevasiPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -448,7 +459,7 @@ private fun HeroProfileSection(
             text = displayName.ifBlank { "Belum diisi" },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
-            color = ElevasiTextPrimary
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         // Bio
@@ -457,7 +468,7 @@ private fun HeroProfileSection(
             Text(
                 text = bio,
                 style = MaterialTheme.typography.bodyMedium,
-                color = ElevasiTextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 40.dp)
             )
@@ -484,7 +495,7 @@ private fun ElevasiFormField(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = ElevasiTextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 6.dp)
         )
 
@@ -495,20 +506,20 @@ private fun ElevasiFormField(
             placeholder = {
                 Text(
                     text = placeholder,
-                    color = ElevasiTextSecondary.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             },
             singleLine = singleLine,
             maxLines = maxLines,
             shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = ElevasiSurface,
-                unfocusedContainerColor = ElevasiSurface,
-                focusedBorderColor = ElevasiPrimary.copy(alpha = 0.4f),
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                 unfocusedBorderColor = Color.Transparent,
-                focusedTextColor = ElevasiTextPrimary,
-                unfocusedTextColor = ElevasiTextPrimary,
-                cursorColor = ElevasiPrimary
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary
             ),
             textStyle = MaterialTheme.typography.bodyLarge
         )
@@ -542,13 +553,13 @@ private fun BirthdayRow(
             modifier = Modifier
                 .size(42.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(ElevasiSurface),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Outlined.CalendarMonth,
                 contentDescription = "Kalender",
-                tint = ElevasiPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -560,13 +571,13 @@ private fun BirthdayRow(
                 text = "Tanggal Lahir",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
-                color = ElevasiTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "$day $monthLabel",
                 style = MaterialTheme.typography.bodySmall,
-                color = ElevasiTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -575,7 +586,7 @@ private fun BirthdayRow(
         Text(
             text = "Ubah",
             style = MaterialTheme.typography.labelLarge,
-            color = ElevasiPrimary
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -600,13 +611,13 @@ private fun ServerStatusItem(isOnline: Boolean) {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(ElevasiSurface),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.CellTower,
                     contentDescription = "Server",
-                    tint = ElevasiTextSecondary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -616,7 +627,7 @@ private fun ServerStatusItem(isOnline: Boolean) {
                 text = "Status Jaringan Server",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
-                color = ElevasiTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         },
         supportingContent = {
@@ -631,7 +642,7 @@ private fun ServerStatusItem(isOnline: Boolean) {
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = ElevasiTextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -648,13 +659,13 @@ private fun AppVersionItem() {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(ElevasiSurface),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = "Versi",
-                    tint = ElevasiTextSecondary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -664,14 +675,14 @@ private fun AppVersionItem() {
                 text = "Versi Elevasi",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium,
-                color = ElevasiTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         },
         supportingContent = {
             Text(
                 text = "v1.0 — Self Hosted Build",
                 style = MaterialTheme.typography.bodySmall,
-                color = ElevasiTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     )
@@ -695,16 +706,16 @@ private fun SaveButton(
             .height(52.dp),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = ElevasiPrimary,
-            contentColor = Color.White,
-            disabledContainerColor = ElevasiPrimary.copy(alpha = 0.45f),
-            disabledContentColor = Color.White.copy(alpha = 0.6f)
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
         )
     ) {
         if (isSaving) {
             CircularProgressIndicator(
                 modifier = Modifier.size(20.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -726,7 +737,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelLarge,
-        color = ElevasiTextSecondary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         letterSpacing = 1.sp,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
     )
@@ -736,9 +747,161 @@ private fun SectionLabel(text: String) {
 private fun SectionDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(vertical = 8.dp),
-        color = ElevasiTextSecondary.copy(alpha = 0.12f),
+        color = MaterialTheme.colorScheme.outlineVariant,
         thickness = 0.5.dp
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Theme settings component
+// ─────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ThemeSettingsItem(
+    currentTheme: ThemeSelection,
+    onThemeSelected: (ThemeSelection) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    val currentThemeLabel = when (currentTheme) {
+        ThemeSelection.LIGHT -> "Terang"
+        ThemeSelection.DARK -> "Gelap"
+        ThemeSelection.FOLLOW_SYSTEM -> "Ikuti Sistem"
+    }
+
+    ListItem(
+        modifier = Modifier
+            .padding(horizontal = 4.dp)
+            .clickable { showDialog = true },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Palette,
+                    contentDescription = "Tema",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        },
+        headlineContent = {
+            Text(
+                text = "Tema Aplikasi",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        },
+        supportingContent = {
+            Text(
+                text = currentThemeLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    )
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = {
+                Text(
+                    text = "Pilih Tema",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ThemeOptionRow(
+                        label = "Terang",
+                        selected = currentTheme == ThemeSelection.LIGHT,
+                        onClick = {
+                            onThemeSelected(ThemeSelection.LIGHT)
+                            showDialog = false
+                        }
+                    )
+                    ThemeOptionRow(
+                        label = "Gelap",
+                        selected = currentTheme == ThemeSelection.DARK,
+                        onClick = {
+                            onThemeSelected(ThemeSelection.DARK)
+                            showDialog = false
+                        }
+                    )
+                    ThemeOptionRow(
+                        label = "Ikuti Sistem",
+                        selected = currentTheme == ThemeSelection.FOLLOW_SYSTEM,
+                        onClick = {
+                            onThemeSelected(ThemeSelection.FOLLOW_SYSTEM)
+                            showDialog = false
+                        }
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(
+                        text = "Batal",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ThemeOptionRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        Color.Transparent
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = contentColor,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+        )
+        if (selected) {
+            Text(
+                text = "✓",
+                color = contentColor,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────
