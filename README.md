@@ -21,6 +21,8 @@ Elevasi adalah platform tertutup yang hanya bisa diakses oleh dua pengguna. Terd
 ## Fitur Utama
 
 - **Onboarding** — Pendaftaran nama dan tanggal ulang tahun saat pertama buka aplikasi; menghasilkan public user ID yang stabil
+- **Lentera Elevasi (Tutorial Interaktif)** — Panduan onboarding interaktif dengan spotlight dinamis yang menyorot setiap fitur utama satu per satu; muncul otomatis saat pertama kali masuk dan bisa diulang kapan saja dari Pengaturan
+- **Tema Dinamis (Terang / Gelap / Ikuti Sistem)** — Sistem tema penuh dengan palet warna hangat dan puitis untuk kedua mode; disimpan secara lokal via Jetpack DataStore dan disinkronkan ke backend
 - **Ruang Dialog Terkunci** — Pertanyaan refleksi mingguan yang menyembunyikan jawaban pasangan sampai keduanya sudah mengisi
 - **Gerbang Langit / Verse Harian** — Koleksi verse harian yang berotasi berdasarkan tanggal lokal device, refresh saat resume
 - **Mading Interaktif** — Sticky note dengan drag-and-drop dan sinkronisasi real-time via WebSocket
@@ -46,9 +48,10 @@ Elevasi/
 │       │   ├── journal/    # Ruang Dialog Terkunci / Refleksi
 │       │   ├── mading/     # Mading Interaktif (WebSocket)
 │       │   ├── plant/      # Tanaman Virtual + animasi Lottie
-│       │   ├── settings/   # Pengaturan Akun, ProfileViewModel
+│       │   ├── settings/   # Pengaturan Akun, ProfileViewModel, ThemeViewModel
+│       │   ├── tutorial/   # Lentera Elevasi (Tutorial Interaktif + Overlay)
 │       │   └── verse/      # Verse Harian / Gerbang Langit
-│       └── ui/             # Tema, token warna, komponen bersama (TopBar, BottomBar)
+│       └── ui/             # Tema dinamis, token warna, komponen bersama (TopBar, BottomBar)
 ├── app/src/main/res/
 │   └── raw/                # File animasi Lottie (plant_seed, sprout, young, bloom)
 ├── backend/
@@ -228,6 +231,32 @@ Tanaman adalah status bersama antara dua pasangan:
 - **100 EXP per level**, maksimum level 4
 - **Layu** jika tidak ada interaksi selama 3+ hari
 - Dianimasikan dengan **Lottie** — `gen_bloom.py` membuat animasi level 4 secara prosedural
+
+---
+
+## Tema Dinamis (Terang / Gelap / Ikuti Sistem)
+
+Elevasi mendukung tiga pilihan tema:
+
+- **Terang** — Palet Ivory dan Rose Gold (default)
+- **Gelap** — Palet Deep Espresso dan Rose Gold yang lebih terang (tanpa hitam murni `#000000`)
+- **Ikuti Sistem** — Mengikuti pengaturan tema perangkat secara otomatis
+
+Preferensi tema disimpan secara lokal menggunakan **Jetpack DataStore** dan disinkronkan ke backend via `PATCH /api/profile/me`. Semua komponen UI menggunakan `MaterialTheme.colorScheme` sehingga perubahan tema langsung terasa di seluruh aplikasi.
+
+Untuk mengubah tema: buka **Pengaturan Ruang** → **Tema Aplikasi** → pilih mode yang diinginkan.
+
+---
+
+## Lentera Elevasi (Tutorial Interaktif)
+
+Sistem panduan onboarding interaktif yang memperkenalkan setiap fitur utama kepada pengguna baru:
+
+- **Spotlight Dinamis** — Overlay gelap semi-transparan dengan lubang yang menyorot elemen UI aktif menggunakan `BlendMode.Clear` pada Canvas yang di-hardware-accelerate
+- **Koordinat Real-Time** — Posisi elemen (tab navigasi, tombol tulis, ikon profil) diambil secara dinamis via `onGloballyPositioned`, responsif di semua ukuran layar
+- **Navigasi Otomatis** — Saat tutorial melangkah ke tab berbeda, aplikasi otomatis berpindah tab agar konten di belakang spotlight sesuai
+- **Satu Kali Tampil** — Status penyelesaian disimpan di DataStore; tutorial hanya muncul otomatis untuk pengguna baru
+- **Putar Ulang** — Bisa diulang kapan saja dari **Pengaturan Ruang** → **Panduan Aplikasi**
 
 ---
 
