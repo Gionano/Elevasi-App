@@ -3,6 +3,7 @@ package com.example.elevasi.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -16,6 +17,7 @@ class ThemePreferencesManager(private val context: Context) {
 
     companion object {
         private val THEME_KEY = stringPreferencesKey("theme_preference")
+        private val TUTORIAL_COMPLETED_KEY = booleanPreferencesKey("tutorial_completed")
 
         @Volatile
         private var INSTANCE: ThemePreferencesManager? = null
@@ -39,9 +41,21 @@ class ThemePreferencesManager(private val context: Context) {
             }
         }
 
+    val tutorialCompletedFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[TUTORIAL_COMPLETED_KEY] ?: false
+        }
+
     suspend fun setThemeSelection(themeSelection: ThemeSelection) {
         context.dataStore.edit { preferences ->
             preferences[THEME_KEY] = themeSelection.name
         }
     }
+
+    suspend fun setTutorialCompleted(completed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[TUTORIAL_COMPLETED_KEY] = completed
+        }
+    }
 }
+
