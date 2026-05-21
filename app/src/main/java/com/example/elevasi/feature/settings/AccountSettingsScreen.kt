@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -99,7 +100,8 @@ import java.time.ZonedDateTime
 fun AccountSettingsScreen(
     session: UserSessionDto,
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReplayTutorial: () -> Unit = {}
 ) {
     val viewModel: ProfileViewModel = viewModel(
         factory = ProfileViewModel.factory(session)
@@ -343,6 +345,49 @@ fun AccountSettingsScreen(
 
             item {
                 ServerStatusItem(isOnline = state.serverOnline)
+            }
+
+            item {
+                ListItem(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .clickable {
+                            onReplayTutorial()
+                            onNavigateBack()
+                        },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    leadingContent = {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.HelpOutline,
+                                contentDescription = "Panduan",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    },
+                    headlineContent = {
+                        Text(
+                            text = "Panduan Aplikasi",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            text = "Melihat ulang petunjuk dan panduan Lentera Elevasi",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
             }
 
             item {
