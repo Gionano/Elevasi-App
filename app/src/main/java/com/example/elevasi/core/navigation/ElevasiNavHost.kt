@@ -22,7 +22,8 @@ fun ElevasiNavHost(
     navController: NavHostController,
     session: UserSessionDto,
     isBirthdayMode: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReplayTutorial: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -74,7 +75,8 @@ fun ElevasiNavHost(
         composable(ElevasiDestination.PengaturanAkun.route) {
             AccountSettingsScreen(
                 session = session,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onReplayTutorial = onReplayTutorial
             )
         }
 
