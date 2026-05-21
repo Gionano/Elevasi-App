@@ -56,6 +56,12 @@ import com.example.elevasi.data.AvatarCache
 import com.example.elevasi.data.remote.RetrofitClient
 import com.example.elevasi.data.model.ThemeSelection
 import com.example.elevasi.feature.settings.ThemeViewModel
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import com.example.elevasi.data.ThemePreferencesManager
+import com.example.elevasi.feature.tutorial.TutorialViewModel
+import com.example.elevasi.feature.tutorial.TutorialOverlay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun ElevasiApp() {
@@ -143,8 +149,21 @@ private fun AuthenticatedElevasiApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val tutorialViewModel: TutorialViewModel = viewModel(
+        factory = TutorialViewModel.factory(ThemePreferencesManager.getInstance(context))
+    )
+    val tutorialState by tutorialViewModel.uiState.collectAsStateWithLifecycle()
+
     LaunchedEffect(session.userId) {
         BirthdayAlarmScheduler.scheduleNextBirthdayReminder(context, session)
+    }
+
+    LaunchedEffect(session.userId) {
+        // Wait until the DataStore value has actually been read before deciding
+        val loadedState = tutorialViewModel.uiState.first { it.hasLoadedFromDataStore }
+        if (!loadedState.hasCompletedDataStore && !loadedState.isTutorialActive) {
+            tutorialViewModel.startTutorial()
+        }
     }
 
     ElevasiTheme(
@@ -186,7 +205,8 @@ private fun AuthenticatedElevasiApp(
                             navController.navigate(ElevasiDestination.PengaturanAkun.route) {
                                 launchSingleTop = true
                             }
-                        }
+                        },
+                        onProfilePositioned = tutorialViewModel::updateProfileCoordinates
                     )
                 },
                 bottomBar = {
@@ -200,7 +220,8 @@ private fun AuthenticatedElevasiApp(
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        }
+                        },
+                        onTabPositioned = tutorialViewModel::updateTabCoordinates
                     )
                 },
                 floatingActionButton = {
@@ -218,7 +239,10 @@ private fun AuthenticatedElevasiApp(
                             },
                             shape = CircleShape,
                             containerColor = ElevasiPrimary,
-                            contentColor = Color.White
+                            contentColor = Color.White,
+                            modifier = Modifier.onGloballyPositioned { coords ->
+                                tutorialViewModel.updateFabCoordinates(coords.boundsInWindow())
+                            }
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
@@ -234,7 +258,10 @@ private fun AuthenticatedElevasiApp(
                     isBirthdayMode = isBirthdayMode,
                     modifier = Modifier
                         .padding(innerPadding)
-                        .consumeWindowInsets(innerPadding)
+                        .consumeWindowInsets(innerPadding),
+                    onReplayTutorial = {
+                        tutorialViewModel.startTutorial()
+                    }
                 )
             }
 
@@ -242,6 +269,19 @@ private fun AuthenticatedElevasiApp(
                 updateInfo = updateInfo,
                 onDismiss = onDismissUpdateDialog,
                 onDownloadUpdate = onDownloadUpdate
+            )
+
+            TutorialOverlay(
+                viewModel = tutorialViewModel,
+                onNavigateToTab = { destination ->
+                    navController.navigate(destination.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
     }
