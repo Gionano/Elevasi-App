@@ -27,6 +27,9 @@ import com.example.elevasi.core.navigation.ElevasiDestination
 import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 
 // ─────────────────────────────────────────────────────────────────────
 // ElevasiTopBar
@@ -38,7 +41,8 @@ fun ElevasiTopBar(
     userName: String,
     avatarUrl: String? = null,
     onProfileClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProfilePositioned: (Rect) -> Unit = {}
 ) {
     TopAppBar(
         modifier = modifier,
@@ -55,7 +59,10 @@ fun ElevasiTopBar(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                    .clickable(onClick = onProfileClick),
+                    .clickable(onClick = onProfileClick)
+                    .onGloballyPositioned { coords ->
+                        onProfilePositioned(coords.boundsInWindow())
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (!avatarUrl.isNullOrBlank()) {
@@ -95,7 +102,8 @@ fun ElevasiTopBar(
 fun ElevasiBottomBar(
     currentRoute: String?,
     onTabSelected: (ElevasiDestination) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTabPositioned: (ElevasiDestination, Rect) -> Unit = { _, _ -> }
 ) {
     NavigationBar(
         modifier = modifier,
@@ -109,6 +117,9 @@ fun ElevasiBottomBar(
                 selected = isSelected,
                 onClick = { onTabSelected(destination) },
                 alwaysShowLabel = false,
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    onTabPositioned(destination, coords.boundsInWindow())
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -132,3 +143,4 @@ fun ElevasiBottomBar(
         }
     }
 }
+
